@@ -7,6 +7,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Terrazza Duomo 21</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<!-- v2.4 -->
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
@@ -29,6 +33,7 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+button{color:inherit;font-family:inherit;background:none;border:none;cursor:pointer;-webkit-appearance:none;}
 html,body{height:100%;overflow:hidden;background:var(--bg);}
 body{font-family:-apple-system,"SF Pro Text","Helvetica Neue",Arial,sans-serif;color:var(--dark);display:flex;flex-direction:column;max-width:430px;margin:0 auto;}
 
@@ -54,7 +59,7 @@ body{font-family:-apple-system,"SF Pro Text","Helvetica Neue",Arial,sans-serif;c
 .sec-div{height:1px;background:var(–border);margin:5px 0;}
 
 /* Base table button — always gold border when free */
-.t{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:var(–rsm);border:2px solid var(–gold2);background:#ffffff;cursor:pointer;position:relative;transition:all .15s;width:100%;aspect-ratio:1;min-height:0;}
+.t{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:var(–rsm);border:2px solid var(–gold2);background:#ffffff;cursor:pointer;position:relative;transition:all .15s;width:100%;aspect-ratio:1;min-height:0;color:var(–dark);-webkit-appearance:none;}
 .t:active{transform:scale(.91);}
 /* OCCUPIED — red fill + red border */
 .t.act{background:#e53935;border-color:#c62828;}
