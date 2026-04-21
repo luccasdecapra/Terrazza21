@@ -383,6 +383,28 @@ var firebaseConfig={
 firebase.initializeApp(firebaseConfig);
 var db=firebase.database().ref('tavoli');
 
+// Firebase converts JS arrays to objects {0:{...},1:{...}} — normalize back
+function normalizeClients(raw){
+  if(!raw) return [mkC(1)];
+  var arr=Array.isArray(raw)?raw:Object.keys(raw).sort(function(a,b){return a-b;}).map(function(k){return raw[k];});
+  return arr.map(function(c){
+    if(!c) return mkC(1);
+    var bottles=c.bottles;
+    if(bottles&&!Array.isArray(bottles)) bottles=Object.keys(bottles).sort(function(a,b){return a-b;}).map(function(k){return bottles[k];});
+    if(!bottles||!bottles.length) bottles=[{spirit:'',brand:'',qty:1}];
+    return {num:c.num||1, bottles:bottles, softs:c.softs||{}, tickets:c.tickets||0};
+  });
+}
+function normalizeTD(raw){
+  if(!raw) return {};
+  var out={};
+  Object.keys(raw).forEach(function(id){
+    var t=raw[id]; if(!t) return;
+    out[id]={clients:normalizeClients(t.clients)};
+  });
+  return out;
+}
+
 // Write full TD to Firebase (debounced to avoid excessive writes)
 var _saveTimer=null;
 function saveToFirebase(){
@@ -395,17 +417,15 @@ function saveToFirebase(){
 // Listen for changes from other devices and update local TD + UI
 db.on('value',function(snap){
   var remote=snap.val();
-  if(remote){
-    TD=remote;
-  } else {
-    TD={};
-  }
+  TD=normalizeTD(remote);
   buildMap();
-  // If a sheet is open, refresh it to reflect remote changes
+  // If a sheet is open, refresh it live
   if(CT&&document.getElementById('sheet').classList.contains('on')){
-    if(CC>=(TD[CT]?TD[CT].clients.length:0)) CC=0;
+    if(!TD[CT]||CC>=TD[CT].clients.length) CC=0;
     renderSheet();
   }
+  // Refresh report if open
+  if(document.getElementById('page-report').classList.contains('on')) renderReport();
 });
 
 function getT(id){if(!TD[id])TD[id]={clients:[mkC(1)]};return TD[id];}
@@ -499,8 +519,11 @@ function askClearAll(){
 }
 
 function openSheet(id){
-  CT=id;var t=getT(id);
-  if(CC>=t.clients.length)CC=t.clients.length-1;
+  CT=id;
+  if(!TD[id]) TD[id]={clients:[mkC(1)]};
+  TD[id].clients=normalizeClients(TD[id].clients);
+  if(CC>=TD[id].clients.length) CC=TD[id].clients.length-1;
+  if(CC<0) CC=0;
   document.getElementById('stitle').innerHTML='Tavolo <b>'+getLabel(id)+'</b>';
   renderSheet();
   document.getElementById('sov').classList.add('on');
@@ -599,9 +622,30 @@ function renderReport(){
   var ds=days[now.getDay()]+' '+now.getDate()+' '+months[now.getMonth()]+' '+now.getFullYear();
   var h=now.getHours(),m=now.getMinutes(),ts=(h<10?'0':'')+h+':'+(m<10?'0':'')+m;
   var totalG=0,totalS=0,spC={},sfC={};
-  active.forEach(function(id){TD[id].clients.forEach(function(c){c.bottles.forEach(function(b){if(!b.spirit)return;var q=parseInt(b.qty)||0;totalG+=q;spC[b.spirit]=(spC[b.spirit]||0)+q;});Object.keys(c.softs).forEach(function(sid){var v=c.softs[sid];totalS+=v;var sd=SOFTS.find(function(s){return s.id===sid;});if(sd&&v>0)sfC[sd.n]=(sfC[sd.n]||0)+v;});});});
+  active.forEach(function(id){
+    if(!TD[id]) return;
+    var clients=normalizeClients(TD[id].clients);
+    clients.forEach(function(c){
+      (c.bottles||[]).forEach(function(b){if(!b.spirit)return;var q=parseInt(b.qty)||0;totalG+=q;spC[b.spirit]=(spC[b.spirit]||0)+q;});
+      Object.keys(c.softs||{}).forEach(function(sid){var v=c.softs[sid];totalS+=v;var sd=SOFTS.find(function(s){return s.id===sid;});if(sd&&v>0)sfC[sd.n]=(sfC[sd.n]||0)+v;});
+    });
+  });
   var rows='';
-  active.forEach(function(id){var t=TD[id],tot=t.clients.reduce(function(s,c){return s+totB(c);},0),lbl=getLabel(id);rows+='<tr><td class="rmt">Tavolo '+lbl+'</td><td>'+t.clients.length+' cl.</td><td class="rnum">'+(tot>0?tot:'—')+'</td></tr>';t.clients.forEach(function(c){var bots=c.bottles.filter(function(b){return b.spirit;});if(!bots.length&&!(c.tickets>0))return;var bs=bots.map(function(b){return b.qty+'x '+b.spirit+(b.brand?' ('+b.brand+')':'');}).join(', ');var sf=Object.keys(c.softs).filter(function(sid){return c.softs[sid]>0;}).map(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});return c.softs[sid]+'x '+(d?d.n:sid);}).join(', ');var tk=c.tickets>0?' 🎫 '+c.tickets+' ticket':'';rows+='<tr class="drow"><td colspan="3">'+c.num+'° cliente: '+(bs||'—')+(sf?' · <em>'+sf+'</em>':'')+tk+'</td></tr>';});});
+  active.forEach(function(id){
+    var t=TD[id];
+    if(!t||!t.clients) return;
+    var clients=normalizeClients(t.clients);
+    var tot=clients.reduce(function(s,c){return s+totB(c);},0);
+    var lbl=getLabel(id);
+    rows+='<tr><td class="rmt">Tavolo '+lbl+'</td><td class="rnum">'+(tot>0?tot:'—')+'</td></tr>';
+    clients.forEach(function(c){
+      var bots=(c.bottles||[]).filter(function(b){return b.spirit;});
+      if(!bots.length&&!(c.tickets>0)) return;
+      var bs=bots.map(function(b){return b.qty+'x '+b.spirit+(b.brand?' ('+b.brand+')':'');}).join(', ');
+      var tk=c.tickets>0?' 🎫 '+c.tickets+' ticket':'';
+      rows+='<tr class="drow"><td colspan="2">'+c.num+'° cliente: '+(bs||'—')+tk+'</td></tr>';
+    });
+  });
   function pills(obj){return Object.keys(obj).sort(function(a,b){return obj[b]-obj[a];}).map(function(k){return'<span class="pill">'+k+' <b>'+obj[k]+'x</b></span>';}).join('');}
   el.innerHTML='<div class="rtop"><div class="rbrand">Terrazza <b>21</b></div><div class="rsub">Rapporto di Turno</div><div class="rdate">'+ds+' · '+ts+'</div></div><div class="kpis"><div class="kpi"><div class="kval">'+totalG+'</div><div class="klbl">Bottiglie</div></div><div class="kpi"><div class="kval">'+active.length+'</div><div class="klbl">Tavoli</div></div><div class="kpi"><div class="kval">'+totalS+'</div><div class="klbl">Soft</div></div></div><div class="rsec"><div class="rslbl">Per tavolo</div><table class="rtable"><thead><tr><th>Tavolo</th><th>Clienti</th><th style="text-align:right">Bottiglie</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="rsec"><div class="rslbl">Spirits venduti</div><div class="pills">'+(pills(spC)||'—')+'</div></div><div class="rsec"><div class="rslbl">Soft drinks usciti</div><div class="pills">'+(pills(sfC)||'—')+'</div></div><div class="sbtns"><button class="sbtn swa" onclick="shareWA()"><svg width="18" height="18" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Invia su WhatsApp</button><button class="sbtn scp" onclick="copyRep()">📋 Copia testo</button></div>';
 }
