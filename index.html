@@ -350,7 +350,10 @@ select:focus,input:focus{border-color:var(--gold2);}
 
       <!-- STORICO TURNI -->
       <div style="margin-top:24px;">
-        <div class="sec-lbl" style="margin-bottom:10px;">Storico Turni</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div class="sec-lbl" style="margin:0;">Storico Turni</div>
+          <button onclick="askClearStorico()" style="font-size:10px;font-weight:700;color:var(--red);background:none;border:1.5px solid rgba(192,57,43,.3);border-radius:20px;padding:4px 12px;cursor:pointer;letter-spacing:.06em;">Cancella storico</button>
+        </div>
         <div id="storicoList"><div style="font-size:12px;color:var(--muted);text-align:center;padding:20px;">Caricamento...</div></div>
       </div>
     </div>
@@ -733,6 +736,15 @@ function showPage(name){
   }
 }
 
+function askClearStorico(){
+  showCov('Cancellare lo storico?','Eliminare tutti i turni salvati? Questa operazione non può essere annullata.',function(){
+    dbStorico.remove().then(function(){
+      showCov('Fatto!','Storico turni eliminato.',function(){},true);
+      loadStorico();
+    }).catch(function(e){console.warn('Storico remove error:',e);});
+  });
+}
+
 function askClearAll(){
   var cnt=Object.keys(TD).filter(function(k){return hasD(k);}).length;
   if(cnt===0){showCov('Nessun dato','Non ci sono tavoli attivi da azzerare.',function(){},true);return;}
@@ -870,10 +882,11 @@ function renderReport(){
     rows+='<tr><td class="rmt">Tavolo '+lbl+'</td><td class="rnum">'+(tot>0?tot:'—')+'</td></tr>';
     clients.forEach(function(c){
       var bots=(c.bottles||[]).filter(function(b){return b.spirit;});
-      if(!bots.length&&!(c.tickets>0)) return;
+      var sfts=Object.keys(c.softs||{}).filter(function(sid){return c.softs[sid]>0;}).map(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});return(c.softs[sid])+'x '+(d?d.n:sid);}).join(', ');
+      if(!bots.length&&!(c.tickets>0)&&!sfts) return;
       var bs=bots.map(function(b){return b.qty+'x '+b.spirit+(b.brand?' ('+b.brand+')':'');}).join(', ');
       var tk=c.tickets>0?' 🎫 '+c.tickets+' ticket':'';
-      rows+='<tr class="drow"><td colspan="2">'+c.num+'° cliente: '+(bs||'—')+tk+'</td></tr>';
+      rows+='<tr class="drow"><td colspan="2">'+c.num+'° cliente: '+(bs||'—')+tk+(sfts?'<br><span style="color:var(--muted);font-size:10px;">🧃 '+sfts+'</span>':'')+'</td></tr>';
     });
   });
   function pills(obj){return Object.keys(obj).sort(function(a,b){return obj[b]-obj[a];}).map(function(k){return'<span class="pill">'+k+' <b>'+obj[k]+'x</b></span>';}).join('');}
