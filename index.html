@@ -137,7 +137,12 @@ select:focus,input:focus{border-color:var(--gold2);}
 .smod-title{font-size:16px;font-weight:700;color:var(--dark);}
 .smod-close{width:30px;height:30px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;font-weight:700;color:var(--mid);}
 .smod-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 18px;}
-/* Small table variant for Lounge 3 */
+/* Extras toggle buttons */
+.extras-grid{display:flex;flex-wrap:wrap;gap:7px;margin-top:4px;}
+.extra-btn{padding:8px 14px;border-radius:20px;border:2px solid var(--border);background:var(--bg2);font-size:12px;font-weight:700;color:var(--mid);cursor:pointer;transition:all .12s;display:flex;align-items:center;gap:5px;}
+.extra-btn:active{transform:scale(.93);}
+.extra-btn.on{background:var(--dark);color:#fff;border-color:var(--dark);}
+.extra-btn .xtick{font-size:13px;}
 .t.sm{max-height:42px;font-size:9px;}
 .t.sm .tname{font-size:9px;}
 .t.sm .tname-sm{font-size:8px;}
@@ -492,7 +497,7 @@ function normalizeClients(raw){
     var bottles=c.bottles;
     if(bottles&&!Array.isArray(bottles)) bottles=Object.keys(bottles).sort(function(a,b){return a-b;}).map(function(k){return bottles[k];});
     if(!bottles||!bottles.length) bottles=[{spirit:'',brand:'',qty:1}];
-    return {num:c.num||1, bottles:bottles, softs:c.softs||{}, tickets:c.tickets||0};
+    return {num:c.num||1, bottles:bottles, softs:c.softs||{}, tickets:c.tickets||0, pax:c.pax||0, extras:c.extras||{}};
   });
 }
 function normalizeTD(raw){
@@ -657,7 +662,7 @@ function requestCloseSheet() {
 }
 
 function getT(id){if(!TD[id])TD[id]={clients:[mkC(1)]};return TD[id];}
-function mkC(n){return{num:n,bottles:[{spirit:'',brand:'',qty:1}],softs:{},tickets:0};}function totB(c){return c.bottles.reduce(function(s,b){return s+(b.spirit?(parseInt(b.qty)||0):0);},0);}
+function mkC(n){return{num:n,bottles:[{spirit:'',brand:'',qty:1}],softs:{},tickets:0,pax:0,extras:{}};}function totB(c){return c.bottles.reduce(function(s,b){return s+(b.spirit?(parseInt(b.qty)||0):0);},0);}
 function supB(c){return c.bottles.filter(function(b){return b.spirit&&SUPER[b.spirit];}).reduce(function(s,b){var qty=parseInt(b.qty)||0;return s+(MAGNUM_BRANDS[b.brand]?qty*2:qty);},0);}
 function usedS(c){return Object.values(c.softs).reduce(function(s,v){return s+(v||0);},0);}
 // For RED color: only the LAST (current) client counts
@@ -802,6 +807,19 @@ function renderSheet(){
     bottles+='<div class="bcard"><div class="br1"><select style="flex:1" onchange="updBSpirit('+i+',this.value)">'+opts+'</select><button class="bdel" onclick="remB('+i+')">✕</button></div><div class="br2">'+brandField+'<div class="qctrl"><button onclick="qB('+i+',-1)">−</button><span id="bq'+i+'">'+(b.qty||1)+'</span><button onclick="qB('+i+',1)">+</button></div></div></div>';
   });
   var tickets=c.tickets||0;
+  var pax=c.pax||0;
+  var EXTRAS=[
+    {id:'shot',   n:'Shot',    e:'🥃'},
+    {id:'sale',   n:'Sale',    e:'🧂'},
+    {id:'limone', n:'Limone',  e:'🍋'},
+    {id:'arancia',n:'Arancia', e:'🍊'},
+    {id:'sciropo',n:'Sciropo', e:'🍯'},
+  ];
+  var extrasHtml=EXTRAS.map(function(ex){
+    var on=(c.extras||{})[ex.id];
+    return '<button class="extra-btn'+(on?' on':'')+'" id="ex-'+ex.id+'" onclick="togExtra(\''+ex.id+'\')">'+
+      '<span class="xtick">'+(on?'✓':'')+' </span>'+ex.e+' '+ex.n+'</button>';
+  }).join('');
   var softs='';
   SOFTS.forEach(function(s,idx){
     var val=c.softs[s.id]||0;
@@ -810,6 +828,10 @@ function renderSheet(){
   var over=used>allowed&&allowed>0;
   document.getElementById('sbody').innerHTML=
     '<div class="ctabs">'+tabs+'</div>'+
+    '<div style="display:flex;align-items:center;gap:12px;background:var(--bg2);border:2px solid var(--border);border-radius:var(--rsm);padding:11px 14px;margin-bottom:14px;">'+
+    '<span style="flex:1;font-size:13px;font-weight:700;color:var(--dark);">👥 Persone al tavolo</span>'+
+    '<div class="qctrl" style="border:none;background:var(--bg3);padding:5px 9px;"><button onclick="chgPax(-1)">−</button><span id="pax-val" style="font-size:17px;font-weight:800;color:var(--dark);">'+pax+'</span><button onclick="chgPax(1)">+</button></div>'+
+    '</div>'+
     '<div class="slbl">Bottiglie</div>'+bottles+
     '<button class="badd" onclick="addB()">+ aggiungi bottiglia</button>'+
     '<div class="slbl" style="margin-top:16px">Ticket</div>'+
@@ -819,6 +841,8 @@ function renderSheet(){
     '</div>'+
     '<div class="slbl" style="margin-top:16px">Soft Drinks Usciti</div>'+
     '<div class="sgrid">'+softs+'</div>'+
+    '<div class="slbl" style="margin-top:16px">Extra</div>'+
+    '<div class="extras-grid">'+extrasHtml+'</div>'+
     '<div class="tbar">'+
     '<div class="titem"><div class="tval" id="tv-b">'+totB(c)+'</div><div class="tlbl">Bottiglie</div></div>'+
     '<div class="tdiv"></div>'+
@@ -831,6 +855,8 @@ function renderSheet(){
     '<button class="bdanger" onclick="askClear()">Pulisci</button>';
 }
 
+function chgPax(d){var c=getT(CT).clients[CC];c.pax=Math.max(0,(c.pax||0)+d);var el=document.getElementById('pax-val');if(el)el.textContent=c.pax;saveToFirebase();}
+function togExtra(id){var c=getT(CT).clients[CC];if(!c.extras)c.extras={};c.extras[id]=!c.extras[id];var btn=document.getElementById('ex-'+id);if(btn){btn.classList.toggle('on',!!c.extras[id]);btn.querySelector('.xtick').textContent=c.extras[id]?'✓ ':'';}saveToFirebase();}
 function swC(i){CC=i;renderSheet();}
 function addC(){var t=getT(CT),n=Math.max.apply(null,t.clients.map(function(c){return c.num;}))+1;t.clients.push(mkC(n));CC=t.clients.length-1;saveToFirebase();renderSheet();buildMap();}
 function askRemC(i){var t=getT(CT);showCov('Rimuovere cliente','Rimuovere il '+t.clients[i].num+'° cliente?',function(){t.clients.splice(i,1);if(CC>=t.clients.length)CC=t.clients.length-1;saveToFirebase();renderSheet();});}
@@ -883,10 +909,17 @@ function renderReport(){
     clients.forEach(function(c){
       var bots=(c.bottles||[]).filter(function(b){return b.spirit;});
       var sfts=Object.keys(c.softs||{}).filter(function(sid){return c.softs[sid]>0;}).map(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});return(c.softs[sid])+'x '+(d?d.n:sid);}).join(', ');
-      if(!bots.length&&!(c.tickets>0)&&!sfts) return;
+      var extrasLabels=['shot','sale','limone','arancia','sciropo'];
+      var extrasNames={shot:'Shot',sale:'Sale',limone:'Limone',arancia:'Arancia',sciropo:'Sciropo'};
+      var activeExtras=extrasLabels.filter(function(k){return(c.extras||{})[k];}).map(function(k){return extrasNames[k];}).join(', ');
+      if(!bots.length&&!(c.tickets>0)&&!sfts&&!activeExtras) return;
       var bs=bots.map(function(b){return b.qty+'x '+b.spirit+(b.brand?' ('+b.brand+')':'');}).join(', ');
       var tk=c.tickets>0?' 🎫 '+c.tickets+' ticket':'';
-      rows+='<tr class="drow"><td colspan="2">'+c.num+'° cliente: '+(bs||'—')+tk+(sfts?'<br><span style="color:var(--muted);font-size:10px;">🧃 '+sfts+'</span>':'')+'</td></tr>';
+      var paxStr=c.pax>0?' · 👥 '+c.pax+' pers.':'';
+      rows+='<tr class="drow"><td colspan="2">'+c.num+'° cliente: '+(bs||'—')+tk+paxStr+
+        (sfts?'<br><span style="color:var(--muted);font-size:10px;">🧃 '+sfts+'</span>':'')+
+        (activeExtras?'<br><span style="color:var(--muted);font-size:10px;">➕ '+activeExtras+'</span>':'')+
+        '</td></tr>';
     });
   });
   function pills(obj){return Object.keys(obj).sort(function(a,b){return obj[b]-obj[a];}).map(function(k){return'<span class="pill">'+k+' <b>'+obj[k]+'x</b></span>';}).join('');}
