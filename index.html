@@ -6,6 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>Terrazza Duomo 21</title>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <style>
 :root {
   --bg: #f4f1ec;
@@ -367,6 +370,44 @@ var ALL_IDS=['D1','D2','D3','D4','D5','10','9','8','7','6','5','4','2','10A','9A
 
 var TD={},CT=null,CC=0,CCB=null;
 
+// ── FIREBASE SETUP ─────────────────────────────────────────
+var firebaseConfig={
+  apiKey:"AIzaSyB2T7b209i4uNvujtLniSPP1CDq4_jT_-Y",
+  authDomain:"terrazzaduomo21.firebaseapp.com",
+  databaseURL:"https://terrazzaduomo21-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId:"terrazzaduomo21",
+  storageBucket:"terrazzaduomo21.firebasestorage.app",
+  messagingSenderId:"546065843894",
+  appId:"1:546065843894:web:306db88b216bae088f4817"
+};
+firebase.initializeApp(firebaseConfig);
+var db=firebase.database().ref('tavoli');
+
+// Write full TD to Firebase (debounced to avoid excessive writes)
+var _saveTimer=null;
+function saveToFirebase(){
+  clearTimeout(_saveTimer);
+  _saveTimer=setTimeout(function(){
+    db.set(TD).catch(function(e){console.warn('Firebase write error:',e);});
+  },400);
+}
+
+// Listen for changes from other devices and update local TD + UI
+db.on('value',function(snap){
+  var remote=snap.val();
+  if(remote){
+    TD=remote;
+  } else {
+    TD={};
+  }
+  buildMap();
+  // If a sheet is open, refresh it to reflect remote changes
+  if(CT&&document.getElementById('sheet').classList.contains('on')){
+    if(CC>=(TD[CT]?TD[CT].clients.length:0)) CC=0;
+    renderSheet();
+  }
+});
+
 function getT(id){if(!TD[id])TD[id]={clients:[mkC(1)]};return TD[id];}
 function mkC(n){return{num:n,bottles:[{spirit:'',brand:'',qty:1}],softs:{},tickets:0};}function totB(c){return c.bottles.reduce(function(s,b){return s+(b.spirit?(parseInt(b.qty)||0):0);},0);}
 function supB(c){return c.bottles.filter(function(b){return b.spirit&&SUPER[b.spirit];}).reduce(function(s,b){var qty=parseInt(b.qty)||0;return s+(MAGNUM_BRANDS[b.brand]?qty*2:qty);},0);}
@@ -450,6 +491,7 @@ function askClearAll(){
   var cnt=Object.keys(TD).filter(function(k){return hasD(k);}).length;
   showCov('Azzera tutti i tavoli','Sei sicuro di voler cancellare tutti i dati di '+cnt+' tavolo'+(cnt===1?'':'li')+'? Questa operazione non può essere annullata.',function(){
     TD={};CC=0;
+    db.set(null);
     buildMap();
     document.getElementById('chiusura-count').textContent='0';
     showCov('Fatto!','Tutti i tavoli sono stati azzerati.',function(){},true);
@@ -525,15 +567,15 @@ function renderSheet(){
 }
 
 function swC(i){CC=i;renderSheet();}
-function addC(){var t=getT(CT),n=Math.max.apply(null,t.clients.map(function(c){return c.num;}))+1;t.clients.push(mkC(n));CC=t.clients.length-1;renderSheet();buildMap();}
-function askRemC(i){var t=getT(CT);showCov('Rimuovere cliente','Rimuovere il '+t.clients[i].num+'° cliente?',function(){t.clients.splice(i,1);if(CC>=t.clients.length)CC=t.clients.length-1;renderSheet();});}
-function updBSpirit(i,v){var c=getT(CT).clients[CC];c.bottles[i].spirit=v;c.bottles[i].brand='';refTot();renderSheet();}
-function chgTick(d){var c=getT(CT).clients[CC];c.tickets=Math.max(0,(c.tickets||0)+d);var el=document.getElementById('tv-tick');if(el)el.textContent=c.tickets;updateBtn(CT);}
-function updB(i,f,v){var c=getT(CT).clients[CC];c.bottles[i][f]=f==='qty'?Math.max(1,parseInt(v)||1):v;refTot();}
-function qB(i,d){var c=getT(CT).clients[CC];c.bottles[i].qty=Math.max(1,(parseInt(c.bottles[i].qty)||1)+d);var el=document.getElementById('bq'+i);if(el)el.textContent=c.bottles[i].qty;refTot();}
-function addB(){getT(CT).clients[CC].bottles.push({spirit:'',brand:'',qty:1});renderSheet();}
-function remB(i){var c=getT(CT).clients[CC];c.bottles.splice(i,1);if(!c.bottles.length)c.bottles.push({spirit:'',brand:'',qty:1});renderSheet();}
-function cS(id,idx,d){var c=getT(CT).clients[CC];if(!c.softs)c.softs={};c.softs[id]=Math.max(0,(c.softs[id]||0)+d);var ve=document.getElementById('sv'+idx),ie=document.getElementById('sc'+idx);if(ve)ve.textContent=c.softs[id];if(ie){c.softs[id]>0?ie.classList.add('on'):ie.classList.remove('on');}refTot();}
+function addC(){var t=getT(CT),n=Math.max.apply(null,t.clients.map(function(c){return c.num;}))+1;t.clients.push(mkC(n));CC=t.clients.length-1;saveToFirebase();renderSheet();buildMap();}
+function askRemC(i){var t=getT(CT);showCov('Rimuovere cliente','Rimuovere il '+t.clients[i].num+'° cliente?',function(){t.clients.splice(i,1);if(CC>=t.clients.length)CC=t.clients.length-1;saveToFirebase();renderSheet();});}
+function updBSpirit(i,v){var c=getT(CT).clients[CC];c.bottles[i].spirit=v;c.bottles[i].brand='';saveToFirebase();refTot();renderSheet();}
+function chgTick(d){var c=getT(CT).clients[CC];c.tickets=Math.max(0,(c.tickets||0)+d);var el=document.getElementById('tv-tick');if(el)el.textContent=c.tickets;saveToFirebase();updateBtn(CT);}
+function updB(i,f,v){var c=getT(CT).clients[CC];c.bottles[i][f]=f==='qty'?Math.max(1,parseInt(v)||1):v;saveToFirebase();refTot();}
+function qB(i,d){var c=getT(CT).clients[CC];c.bottles[i].qty=Math.max(1,(parseInt(c.bottles[i].qty)||1)+d);var el=document.getElementById('bq'+i);if(el)el.textContent=c.bottles[i].qty;saveToFirebase();refTot();}
+function addB(){getT(CT).clients[CC].bottles.push({spirit:'',brand:'',qty:1});saveToFirebase();renderSheet();}
+function remB(i){var c=getT(CT).clients[CC];c.bottles.splice(i,1);if(!c.bottles.length)c.bottles.push({spirit:'',brand:'',qty:1});saveToFirebase();renderSheet();}
+function cS(id,idx,d){var c=getT(CT).clients[CC];if(!c.softs)c.softs={};c.softs[id]=Math.max(0,(c.softs[id]||0)+d);var ve=document.getElementById('sv'+idx),ie=document.getElementById('sc'+idx);if(ve)ve.textContent=c.softs[id];if(ie){c.softs[id]>0?ie.classList.add('on'):ie.classList.remove('on');}saveToFirebase();refTot();}
 function refTot(){
   var c=getT(CT).clients[CC],tb=totB(c),al=supB(c)*8,us=usedS(c),ov=us>al&&al>0;
   var hasMag=c.bottles.some(function(b){return MAGNUM_BRANDS[b.brand]&&b.spirit;});
@@ -545,7 +587,7 @@ function refTot(){
   // live update the map button color
   updateBtn(CT);
 }
-function askClear(){showCov('Pulire tavolo','Cancellare tutti i clienti e le bottiglie di questo tavolo?',function(){delete TD[CT];CC=0;closeSheet();});}
+function askClear(){showCov('Pulire tavolo','Cancellare tutti i clienti e le bottiglie di questo tavolo?',function(){delete TD[CT];CC=0;saveToFirebase();closeSheet();});}
 
 function renderReport(){
   var active=Object.keys(TD).filter(function(k){return hasD(k);});
@@ -591,7 +633,12 @@ function showCov(title,msg,cb,infoOnly){
 function closeCov(){document.getElementById('cov').classList.remove('on');CCB=null;}
 document.getElementById('cok').onclick=function(){if(CCB)CCB();closeCov();};
 
-window.addEventListener('DOMContentLoaded',function(){buildMap();});
+window.addEventListener('DOMContentLoaded',function(){
+  // buildMap is called automatically by Firebase db.on('value') listener
+  // Show a subtle loading indicator in the header until first sync
+  var hd=document.getElementById('hDate');
+  if(hd) hd.textContent='Connessione...';
+});
 </script>
 </body>
 </html>
