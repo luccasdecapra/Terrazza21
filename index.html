@@ -4,12 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Terrazza 21">
+<meta name="theme-color" content="#1a1510">
+<meta name="description" content="Gestione tavoli Terrazza Duomo 21">
+<link rel="manifest" id="pwa-manifest">
 <title>Terrazza Duomo 21</title>
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<!-- v2.4 -->
+
+<!-- v2.6 — localStorage backup: dati istantanei al reload, Firebase come sync remoto -->
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
@@ -193,23 +195,17 @@ select:focus,input:focus{border-color:var(--gold2);}
 
 <div class="hdr">
   <div class="hdr-inner">
-    <!-- LOGO SVG — centered spires + text -->
     <div class="hdr-logo">
       <svg width="200" height="56" viewBox="0 0 200 56" xmlns="http://www.w3.org/2000/svg">
         <g fill="#7a6648">
-          <!-- Outer pair (shortest) -->
           <polygon points="67,34 70,34 69.5,24 67.5,24"/>
           <polygon points="130,34 133,34 132.5,24 130.5,24"/>
-          <!-- Second pair -->
           <polygon points="73,34 76.5,34 75.5,17 74,17"/>
           <polygon points="123.5,34 127,34 126,17 124.5,17"/>
-          <!-- Third pair -->
           <polygon points="80,34 84,34 82.5,11 81.5,11"/>
           <polygon points="116,34 120,34 118.5,11 117.5,11"/>
-          <!-- Fourth pair -->
           <polygon points="87,34 91,34 89.5,5 88.5,5"/>
           <polygon points="109,34 113,34 111.5,5 110.5,5"/>
-          <!-- Center (tallest) -->
           <polygon points="97,34 103,34 101,1 99,1"/>
         </g>
         <line x1="20" y1="36.5" x2="180" y2="36.5" stroke="#7a6648" stroke-width="0.9"/>
@@ -233,68 +229,58 @@ select:focus,input:focus{border-color:var(--gold2);}
 <div class="pages">
   <div class="page on" id="page-map">
 
-    <!-- ══ SEZIONE PRINCIPALE — 8 cols ══ -->
     <div class="sec-lbl">Sezione Principale</div>
     <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-bottom:5px;">
-      <button class="t vip" id="tb-D1"  onclick="openSheet('D1')"><span class="tname">D1</span></button>
-      <button class="t"     id="tb-10"  onclick="openSheet('10')"><span class="tname">10</span></button>
-      <button class="t"     id="tb-9"   onclick="openSheet('9')"><span class="tname">9</span></button>
-      <button class="t"     id="tb-8"   onclick="openSheet('8')"><span class="tname">8</span></button>
-      <button class="t"     id="tb-7"   onclick="openSheet('7')"><span class="tname">7</span></button>
-      <button class="t"     id="tb-6"   onclick="openSheet('6')"><span class="tname">6</span></button>
-      <button class="t"     id="tb-5"   onclick="openSheet('5')"><span class="tname">5</span></button>
-      <button class="t"     id="tb-4"   onclick="openSheet('4')"><span class="tname">4</span></button>
+      <button class="t" id="tb-D1"  onclick="openSheet('D1')"><span class="tname">D1</span></button>
+      <button class="t" id="tb-10"  onclick="openSheet('10')"><span class="tname">10</span></button>
+      <button class="t" id="tb-9"   onclick="openSheet('9')"><span class="tname">9</span></button>
+      <button class="t" id="tb-8"   onclick="openSheet('8')"><span class="tname">8</span></button>
+      <button class="t" id="tb-7"   onclick="openSheet('7')"><span class="tname">7</span></button>
+      <button class="t" id="tb-6"   onclick="openSheet('6')"><span class="tname">6</span></button>
+      <button class="t" id="tb-5"   onclick="openSheet('5')"><span class="tname">5</span></button>
+      <button class="t" id="tb-4"   onclick="openSheet('4')"><span class="tname">4</span></button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-bottom:5px;">
-      <button class="t vip" id="tb-D2"  onclick="openSheet('D2')"><span class="tname">D2</span></button>
-      <button class="t"     id="tb-10A" onclick="openSheet('10A')"><span class="tname">10A</span></button>
-      <button class="t"     id="tb-9A"  onclick="openSheet('9A')"><span class="tname">9A</span></button>
-      <button class="t"     id="tb-8A"  onclick="openSheet('8A')"><span class="tname">8A</span></button>
-      <button class="t"     id="tb-7A"  onclick="openSheet('7A')"><span class="tname">7A</span></button>
-      <button class="t"     id="tb-6A"  onclick="openSheet('6A')"><span class="tname">6A</span></button>
-      <button class="t"     id="tb-5A"  onclick="openSheet('5A')"><span class="tname">5A</span></button>
-      <button class="t"     id="tb-4A"  onclick="openSheet('4A')"><span class="tname">4A</span></button>
+      <button class="t" id="tb-D2"  onclick="openSheet('D2')"><span class="tname">D2</span></button>
+      <button class="t" id="tb-10A" onclick="openSheet('10A')"><span class="tname">10A</span></button>
+      <button class="t" id="tb-9A"  onclick="openSheet('9A')"><span class="tname">9A</span></button>
+      <button class="t" id="tb-8A"  onclick="openSheet('8A')"><span class="tname">8A</span></button>
+      <button class="t" id="tb-7A"  onclick="openSheet('7A')"><span class="tname">7A</span></button>
+      <button class="t" id="tb-6A"  onclick="openSheet('6A')"><span class="tname">6A</span></button>
+      <button class="t" id="tb-5A"  onclick="openSheet('5A')"><span class="tname">5A</span></button>
+      <button class="t" id="tb-4A"  onclick="openSheet('4A')"><span class="tname">4A</span></button>
     </div>
     <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;">
-      <button class="t vip" id="tb-D3" onclick="openSheet('D3')"><span class="tname">D3</span></button>
+      <button class="t" id="tb-D3" onclick="openSheet('D3')"><span class="tname">D3</span></button>
     </div>
 
     <div class="sec-div"></div>
 
-    <!-- ══ AREA DJ · VIP — 8 cols, 2 rows ══ -->
     <div class="sec-lbl">Area DJ · VIP</div>
     <div style="display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:auto auto;gap:5px;align-items:stretch;">
-      <button class="t vip" id="tb-D4" onclick="openSheet('D4')" style="grid-column:1;grid-row:1;"><span class="tname">D4</span></button>
-      <button class="t vip" id="tb-J"  onclick="openSheet('J')"  style="grid-column:2;grid-row:1/3;aspect-ratio:unset;height:100%;"><span style="font-size:22px;font-weight:900;color:var(--dark);">J</span></button>
-      <button class="t"     id="tb-G7" onclick="openSheet('G7')" style="grid-column:3;grid-row:1;"><span class="tname">G7</span></button>
-      <button class="t"     id="tb-G6" onclick="openSheet('G6')" style="grid-column:4;grid-row:1;"><span class="tname">G6</span></button>
-      <button class="t vip" id="tb-G5" onclick="openSheet('G5')" style="grid-column:5;grid-row:1/3;aspect-ratio:unset;height:100%;"><span style="font-size:15px;font-weight:900;color:var(--dark);">G5</span></button>
+      <button class="t" id="tb-D4" onclick="openSheet('D4')" style="grid-column:1;grid-row:1;"><span class="tname">D4</span></button>
+      <button class="t" id="tb-J"  onclick="openSheet('J')"  style="grid-column:2;grid-row:1/3;aspect-ratio:unset;height:100%;"><span style="font-size:22px;font-weight:900;color:var(--dark);">J</span></button>
+      <button class="t" id="tb-G7" onclick="openSheet('G7')" style="grid-column:3;grid-row:1;"><span class="tname">G7</span></button>
+      <button class="t" id="tb-G6" onclick="openSheet('G6')" style="grid-column:4;grid-row:1;"><span class="tname">G6</span></button>
+      <button class="t" id="tb-G5" onclick="openSheet('G5')" style="grid-column:5;grid-row:1/3;aspect-ratio:unset;height:100%;"><span style="font-size:15px;font-weight:900;color:var(--dark);">G5</span></button>
       <div style="grid-column:6;grid-row:1/3;display:flex;align-items:center;justify-content:center;font-size:22px;">🎧</div>
-      <button class="t vip" id="tb-G1G2" onclick="openSheet('G1G2')" style="grid-column:7;grid-row:1/3;aspect-ratio:unset;height:100%;border-width:2.5px;"><span style="font-size:13px;font-weight:900;color:var(--dark);line-height:1.4;text-align:center;">G2<br>G1</span></button>
-      <button class="t"     id="tb-2"  onclick="openSheet('2')"  style="grid-column:8;grid-row:1;"><span class="tname">2</span></button>
-      <button class="t vip" id="tb-D5" onclick="openSheet('D5')" style="grid-column:1;grid-row:2;"><span class="tname">D5</span></button>
+      <button class="t" id="tb-G1G2" onclick="openSheet('G1G2')" style="grid-column:7;grid-row:1/3;aspect-ratio:unset;height:100%;border-width:2.5px;"><span style="font-size:13px;font-weight:900;color:var(--dark);line-height:1.4;text-align:center;">G2<br>G1</span></button>
+      <button class="t" id="tb-2"  onclick="openSheet('2')"  style="grid-column:8;grid-row:1;"><span class="tname">2</span></button>
+      <button class="t" id="tb-D5" onclick="openSheet('D5')" style="grid-column:1;grid-row:2;"><span class="tname">D5</span></button>
       <div style="grid-column:3;grid-row:2;"></div>
       <div style="grid-column:4;grid-row:2;"></div>
-      <button class="t"     id="tb-1"  onclick="openSheet('1')"  style="grid-column:8;grid-row:2;"><span class="tname">1</span></button>
+      <button class="t" id="tb-1"  onclick="openSheet('1')"  style="grid-column:8;grid-row:2;"><span class="tname">1</span></button>
     </div>
 
     <div class="sec-div"></div>
 
-    <!-- LOUNGE 1 + LOUNGE 2 + INGRESSO — 8-col grid with explicit spacing -->
-    <!--
-    col: 1    2    3    4    5    6    7    8
-         L1S  L1D  sp   L2S  L2D  sp   E7  E3
-                                        E8  E4
-    -->
     <div style="display:grid;grid-template-columns:1fr 1fr 0.4fr 1fr 1fr 0.4fr 1fr 1fr;gap:5px;align-items:start;">
-      <!-- Labels -->
       <div class="sec-lbl" style="grid-column:1/3;margin-bottom:4px;">Lounge 1</div>
       <div style="grid-column:3;"></div>
       <div class="sec-lbl" style="grid-column:4/6;margin-bottom:4px;">Lounge 2</div>
       <div style="grid-column:6;"></div>
       <div class="sec-lbl" style="grid-column:7/9;margin-bottom:4px;">Ingresso</div>
 
-      <!-- Buttons row 1 -->
       <button class="t" id="tb-L1S" onclick="openSheet('L1S')" style="grid-column:1;grid-row:2;"><span class="tname-sm">L1<br>Sin.</span></button>
       <button class="t" id="tb-L1D" onclick="openSheet('L1D')" style="grid-column:2;grid-row:2;"><span class="tname-sm">L1<br>Des.</span></button>
       <div style="grid-column:3;grid-row:2;"></div>
@@ -304,7 +290,6 @@ select:focus,input:focus{border-color:var(--gold2);}
       <button class="t" id="tb-E7" onclick="openSheet('E7')" style="grid-column:7;grid-row:2;"><span class="tname">E7</span></button>
       <button class="t" id="tb-E3" onclick="openSheet('E3')" style="grid-column:8;grid-row:2;"><span class="tname">E3</span></button>
 
-      <!-- Buttons row 2 — Ingresso bottom only -->
       <div style="grid-column:1;grid-row:3;"></div>
       <div style="grid-column:2;grid-row:3;"></div>
       <div style="grid-column:3;grid-row:3;"></div>
@@ -316,13 +301,6 @@ select:focus,input:focus{border-color:var(--gold2);}
 
     <div class="sec-div"></div>
 
-    <!-- LOUNGE 3 — full size, 51-54 with gap between each, 55/56 stacked right-aligned -->
-    <!--
-    col: 1   sp  2   sp  3   sp  4   sp  5
-         51      52      53      54      55
-                                         56
-    Using wider grid with spacer cols between numbered tables
-    -->
     <div class="sec-lbl">Lounge 3</div>
     <div style="display:grid;grid-template-columns:1fr 0.3fr 1fr 0.3fr 1fr 0.3fr 1fr 0.6fr 1fr;gap:5px;">
       <button class="t" id="tb-51" onclick="openSheet('51')" style="grid-column:1;grid-row:1;"><span class="tname">51</span></button>
@@ -335,6 +313,16 @@ select:focus,input:focus{border-color:var(--gold2);}
       <div style="grid-column:8;"></div>
       <button class="t" id="tb-55" onclick="openSheet('55')" style="grid-column:9;grid-row:1;"><span class="tname">55</span></button>
       <button class="t" id="tb-56" onclick="openSheet('56')" style="grid-column:9;grid-row:2;"><span class="tname">56</span></button>
+    </div>
+
+    <div class="sec-div"></div>
+
+    <!-- ══ TERRAZZINI ══ -->
+    <div class="sec-lbl">Terrazzini</div>
+    <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;">
+      <button class="t" id="tb-T1" onclick="openSheet('T1')"><span class="tname">T1</span></button>
+      <button class="t" id="tb-T3" onclick="openSheet('T3')"><span class="tname">T3</span></button>
+      <button class="t" id="tb-T4" onclick="openSheet('T4')"><span class="tname">T4</span></button>
     </div>
 
   </div><!-- page-map -->
@@ -358,7 +346,6 @@ select:focus,input:focus{border-color:var(--gold2);}
       </button>
       <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px;">⚠️ L'operazione è irreversibile</p>
 
-      <!-- STORICO TURNI -->
       <div style="margin-top:24px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
           <div class="sec-lbl" style="margin:0;">Storico Turni</div>
@@ -421,6 +408,8 @@ function logo(id){
     anan:'<svg width="34" height="34" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><ellipse cx="20" cy="25" rx="11" ry="13" fill="#FFD600"/><path d="M14 12 Q20 6 26 12 Q22 9 20 10 Q18 9 14 12Z" fill="#388E3C"/><line x1="13" y1="18" x2="27" y2="18" stroke="#F9A825" stroke-width="1.2"/><line x1="12" y1="23" x2="28" y2="23" stroke="#F9A825" stroke-width="1.2"/><line x1="13" y1="28" x2="27" y2="28" stroke="#F9A825" stroke-width="1.2"/></svg>',
     cran:'<svg width="34" height="34" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="19" fill="#880E4F"/><circle cx="20" cy="20" r="11" fill="#C2185B" opacity="0.85"/><circle cx="20" cy="20" r="5" fill="#F06292" opacity="0.7"/></svg>',
     mela:'<svg width="34" height="34" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="22" r="15" fill="#7CB342"/><circle cx="20" cy="22" r="10" fill="#AED581" opacity="0.7"/><path d="M20 7 Q22 3 20 1 Q18 3 20 7Z" fill="#388E3C"/><path d="M20 7 L21 10" stroke="#5D4037" stroke-width="2" stroke-linecap="round"/></svg>',
+    fanta:'<svg width="34" height="34" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="19" fill="#FF6D00"/><circle cx="20" cy="20" r="13" fill="#FF8F00" opacity="0.85"/><text x="20" y="24" text-anchor="middle" font-size="11" font-weight="900" fill="white" font-family="Arial Black,Arial,sans-serif">Fanta</text></svg>',
+    lime:'<svg width="34" height="34" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="19" fill="#CCFF00" opacity="0.9"/><circle cx="20" cy="20" r="13" fill="#AEEA00" opacity="0.85"/><text x="20" y="17" text-anchor="middle" font-size="7" font-weight="bold" fill="#33691E" font-family="Arial,sans-serif">SUCO</text><text x="20" y="27" text-anchor="middle" font-size="9" font-weight="900" fill="#33691E" font-family="Arial Black,Arial,sans-serif">LIME</text></svg>',
   };
   return L[id]||'<svg width="34" height="34" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="20" r="19" fill="#ccc"/></svg>';
 }
@@ -428,7 +417,8 @@ function logo(id){
 var SOFTS=[
   {id:'tonica',n:'Acqua Tonica'},{id:'lemon',n:'Lemon Soda'},{id:'redbull',n:'Red Bull'},
   {id:'coca',n:'Coca-Cola'},{id:'cocaz',n:'Coca Zero'},{id:'sprite',n:'Sprite'},
-  {id:'grape',n:'Tonica Grape'},{id:'acqua',n:'Acqua Nat.'},{id:'gas',n:'Acqua Gass.'},
+  {id:'grape',n:'T. Pompelmo'},{id:'fanta',n:'Fanta'},{id:'lime',n:'Suco Lime'},
+  {id:'acqua',n:'Acqua Nat.'},{id:'gas',n:'Acqua Gass.'},
   {id:'aranc',n:'S. Arancia'},{id:'anan',n:'S. Ananas'},{id:'cran',n:'S. Cranberry'},{id:'mela',n:'S. Mela'},
 ];
 var BRANDS={
@@ -469,40 +459,31 @@ var BRANDS={
     'Clase Azul Plata','Clase Azul Reposado','Clase Azul Añejo','Clase Azul Mezcal Durango','Clase Azul Ultra Premium'
   ],
   Champagne:[
-    // Dom Pérignon
     'Dom Pérignon 2017','Dom Pérignon 2013 Magnum 1,5lt','Dom Pérignon 2008 Jeroboam 3lt',
     'Dom Pérignon Rosé 2009','Dom Pérignon Rosé Magnum 1,5lt','Dom Pérignon Rosé Jeroboam 3lt',
     'Dom Pérignon Luminous 2013','Dom Pérignon Luminous Magnum 1,5lt','Dom Pérignon Luminous Jeroboam 3lt',
     'Dom Pérignon Luminous Rosé 2009','Dom Pérignon Luminous Rosé Mathusalem 6lt',
     'Dom Pérignon P2 2004','Dom Pérignon P2 2006','Dom Pérignon P2 2000 Rosé','Dom Pérignon 2010 Lady Gaga',
-    // Krug
     'Krug Grand Cuvée 172ème','Krug Grand Cuvée 168ème Magnum 1,5lt','Krug Grand Cuvée 162ème Jeroboam 3lt',
     'Krug Vintage Collection 1995','Krug Rosé 27ème','Krug Rosé Magnum 1,5lt','Krug Rosé Jeroboam 3lt',
-    // Veuve Clicquot
     'Veuve Clicquot Yellow Label','Veuve Clicquot Yellow Label Magnum 1,5lt','Veuve Clicquot Yellow Label Jeroboam 3lt','Veuve Clicquot Yellow Label Mathusalem 6lt',
     'Veuve Clicquot Rosé','Veuve Clicquot Rosé Magnum 1,5lt','Veuve Clicquot Rich',
-    // Moët & Chandon
     'Moët & Chandon Brut Magnum 1,5lt','Moët & Chandon ICE','Moët & Chandon ICE Rosé',
     'Moët & Chandon N.I.R Luminous','Moët & Chandon N.I.R Luminous Magnum 1,5lt',
-    // RSRV (G.H.Mumm)
     'RSRV Brut Cuvée','RSRV Blanc de Blancs','RSRV Rosé',
-    // Ruinart
     'Ruinart Brut','Ruinart Brut Magnum 1,5lt','Ruinart Brut Jéroboam 3lt',
     'Ruinart Blanc de Blancs','Ruinart Blanc de Blancs Magnum 1,5lt','Ruinart Blanc de Blancs Jéroboam 3lt',
     'Ruinart Rosé','Ruinart Rosé Magnum 1,5lt','Ruinart Rosé Jeroboam 3lt',
-    // Armand de Brignac
     'Armand de Brignac Gold Brut','Armand de Brignac Gold Brut Magnum 1,5lt','Armand de Brignac Gold Brut Jeroboam 3lt',
     'Armand de Brignac Silver Blanc de Blancs',
     'Armand de Brignac Black Blanc de Noir Magnum 1,5lt',
     'Armand de Brignac Rosé','Armand de Brignac Rosé Magnum 1,5lt',
-    // Cristal
     'Cristal 2016','Cristal 2012 Magnum 1,5lt','Cristal 2012 Mathusalem 6lt',
     'Cristal 2012 Rosé Magnum 1,5lt','Cristal 2013 Rosé'
   ],
   Prosecco:[
     'Bottega Gold','Bottega Gold Magnum 1,5lt',
     'Bottega Gold Rosé','Bottega Gold Rosé Magnum 1,5lt',
-    // Ca\'del Bosco & Bellavista (Franciacorta)
     'Cà del Bosco Cuvée Prestige','Cà del Bosco Cuvée Prestige Magnum 1,5lt','Cà del Bosco Cuvée Prestige Jeroboam 3lt','Cà del Bosco Cuvée Prestige Mathusalem 6lt',
     'Cà del Bosco Cuvée Prestige Rosé','Annamaria Clementi 2011',
     'Bellavista Brut Grand Cuvée Alma','Bellavista Riserva Vittorio Moretti',
@@ -527,68 +508,52 @@ var BRANDS={
   Altro:[]
 };
 
-// ── PRICES ─────────────────────────────────────────────────
 var PRICES={
-  // VODKA
   'Belvedere 70cl':300,'Belvedere 10 Illuminator 70cl':800,'Belvedere Magnum 175cl':600,
   'Belvedere Jeroboam Illuminator 300cl':1500,'Belvedere Mathusalem Illuminator 600cl':3000,
   'Absolut Elyx 70cl':300,'Beluga 70cl':400,'Cîroc 70cl':350,'Crystal Head 70cl':350,
   'Imperial Collection Uovo Fabergé Gold':6000,'Imperial Collection Uovo Fabergé Blu':6000,'Imperial Collection Uovo Fabergé Marmo Rosa':6000,
-  // GIN
   'Malfy Originale 70cl':300,'Malfy Limone 70cl':300,'Malfy Pompelmo 70cl':300,'Malfy Arancia 70cl':300,
   'Bombay Sapphire Premier Cru 70cl':350,'Monkey 47 50cl':350,'Mare 70cl':400,'Hendrick\'s 70cl':400,
-  // RUM
   'La Hechicera':300,'Bumbu Original':300,'Bumbu XO':350,'Bumbu Cream':300,
   'Diplomatico':350,'Don Papa Baroko':350,'Pampero Aniversario':350,'Santa Teresa':350,
   'Zacapa 23 Solera':400,'Zacapa XO':600,'Havana Club 15yo':700,'Havana Club Cohiba':1200,'Caroni 1996 23yo':5000,
   'Havana Maximo':6000,'Andres Brugal':7000,'Caroni Tasting 1996 23yo':7000,
-  // WHISKEY
   'The Glenlivet 12yo':300,'The Glenlivet 15yo':350,'The Glenlivet 18yo':500,
   'Aberlour 12yo':300,'Chivas 12yo':350,'Jameson Black Barrel':350,'Jack Daniel\'s':300,'Macallan 12yo':400,
   'Johnnie Walker Black Label':350,'Johnnie Walker Gold Label':400,'Johnnie Walker Green Label':600,
   'Johnnie Walker Blue Label':800,'Johnnie Walker Blue Label Port Ellen':2500,'Lagavulin 16yo':600,
   'Macallan 25yo Sherry Oak':9000,'Macallan M Release 2022':25000,'Glenfiddich 29yo':6000,'Yamazaki 18yo':9000,'Tallisker 43yo':18000,
-  // COGNAC
   'Hennessy V.S.':350,'Hennessy X.O.':800,
   'Martell V.S.':300,'Martell V.S.O.P':350,
   'Courvoisier X.O.':2500,'Rémy Martin Louis XIII':8000,
-  // TEQUILA
   'Volcán de mi Tierra Blanco':300,'Volcán de mi Tierra Reposado':350,'Volcán de mi Tierra Cristalino':400,'Volcán de mi Tierra X.A.':1200,
   'Avion Reserva 44':800,
   'Patrón Silver':350,'Patrón Reposado':400,'Patrón Añejo':450,'Patrón XO Café':400,
   'Casamigos Blanco':350,'Casamigos Reposado':400,'Casamigos Añejo':450,'Casamigos Mezcal':450,
   'Don Julio 1942':1000,
   'Clase Azul Plata':600,'Clase Azul Reposado':1000,'Clase Azul Añejo':2500,'Clase Azul Mezcal Durango':1300,'Clase Azul Ultra Premium':9000,
-  // CHAMPAGNE — Dom Pérignon
   'Dom Pérignon 2017':600,'Dom Pérignon 2013 Magnum 1,5lt':1400,'Dom Pérignon 2008 Jeroboam 3lt':10000,
   'Dom Pérignon Rosé 2009':1200,'Dom Pérignon Rosé Magnum 1,5lt':3000,'Dom Pérignon Rosé Jeroboam 3lt':12000,
   'Dom Pérignon Luminous 2013':800,'Dom Pérignon Luminous Magnum 1,5lt':1500,'Dom Pérignon Luminous Jeroboam 3lt':10000,
   'Dom Pérignon Luminous Rosé 2009':1100,'Dom Pérignon Luminous Rosé Mathusalem 6lt':35000,
   'Dom Pérignon P2 2004':1800,'Dom Pérignon P2 2006':1500,'Dom Pérignon P2 2000 Rosé':7000,'Dom Pérignon 2010 Lady Gaga':700,
-  // Krug
   'Krug Grand Cuvée 172ème':800,'Krug Grand Cuvée 168ème Magnum 1,5lt':1500,'Krug Grand Cuvée 162ème Jeroboam 3lt':10000,
   'Krug Vintage Collection 1995':5000,'Krug Rosé 27ème':1200,'Krug Rosé Magnum 1,5lt':2500,'Krug Rosé Jeroboam 3lt':12000,
-  // Veuve Clicquot
   'Veuve Clicquot Yellow Label':300,'Veuve Clicquot Yellow Label Magnum 1,5lt':600,'Veuve Clicquot Yellow Label Jeroboam 3lt':2000,'Veuve Clicquot Yellow Label Mathusalem 6lt':4000,
   'Veuve Clicquot Rosé':350,'Veuve Clicquot Rosé Magnum 1,5lt':700,'Veuve Clicquot Rich':350,
-  // Moët & Chandon
   'Moët & Chandon Brut Magnum 1,5lt':650,'Moët & Chandon ICE':400,'Moët & Chandon ICE Rosé':450,
   'Moët & Chandon N.I.R Luminous':400,'Moët & Chandon N.I.R Luminous Magnum 1,5lt':850,
-  // RSRV
   'RSRV Brut Cuvée':300,'RSRV Blanc de Blancs':300,'RSRV Rosé':350,
-  // Ruinart
   'Ruinart Brut':350,'Ruinart Brut Magnum 1,5lt':750,'Ruinart Brut Jéroboam 3lt':2200,
   'Ruinart Blanc de Blancs':380,'Ruinart Blanc de Blancs Magnum 1,5lt':800,'Ruinart Blanc de Blancs Jéroboam 3lt':2500,
   'Ruinart Rosé':400,'Ruinart Rosé Magnum 1,5lt':850,'Ruinart Rosé Jeroboam 3lt':3000,
-  // Armand de Brignac
   'Armand de Brignac Gold Brut':800,'Armand de Brignac Gold Brut Magnum 1,5lt':1800,'Armand de Brignac Gold Brut Jeroboam 3lt':9000,
   'Armand de Brignac Silver Blanc de Blancs':1500,
   'Armand de Brignac Black Blanc de Noir Magnum 1,5lt':8000,
   'Armand de Brignac Rosé':1000,'Armand de Brignac Rosé Magnum 1,5lt':2000,
-  // Cristal
   'Cristal 2016':700,'Cristal 2012 Magnum 1,5lt':1600,'Cristal 2012 Mathusalem 6lt':30000,
   'Cristal 2012 Rosé Magnum 1,5lt':4000,'Cristal 2013 Rosé':1800,
-  // PROSECCO / FRANCIACORTA
   'Bottega Gold':300,'Bottega Gold Magnum 1,5lt':600,'Bottega Gold Rosé':300,'Bottega Gold Rosé Magnum 1,5lt':600,
   'Cà del Bosco Cuvée Prestige':300,'Cà del Bosco Cuvée Prestige Magnum 1,5lt':600,'Cà del Bosco Cuvée Prestige Jeroboam 3lt':1500,'Cà del Bosco Cuvée Prestige Mathusalem 6lt':2500,
   'Cà del Bosco Cuvée Prestige Rosé':350,'Annamaria Clementi 2011':500,
@@ -596,31 +561,24 @@ var PRICES={
   'Bellavista Cuvée Alma Non Dosato':350,'Bellavista Cuvée Alma Non Dosato Magnum 1,5lt':550,
   'Bellavista Cuvée Alma Rosé':350,'Bellavista Cuvée Alma Rosé Magnum 1,5lt':550,
   'Giulio Ferrari Riserva del Fondatore':900,'Giulio Ferrari Riserva del Fondatore Rosé':1100,
-  // VINO BIANCO
   'GAJA Rossj Bass Doc 2022':400,'Louis Jadot Bourgogne Blanc 2022':300,
   'Domaine de Ladoucette Baron de L 2019':500,'Donnafugata Anthilia':300,'Jermann Vinnae Ribolla Gialla 2024':300,
-  // VINO ROSSO
   'MASI Amarone della Valpolicella Docg':500,'Cà del Bosco Corte del Lupo':300,
   'GAJA Sito Moresco':300,'Tenuta San Guido Sassicaia 2020':1500,
   'Ceretto Barbaresco 2020':500,'Frescobaldi Chianti Classico Tenuta Perano 2022':300,
-  // VINO ROSÉ
   'Elena Walch Rosé Vigneti delle Dolomiti 2022':300,
   'Chateau d\'Esclans Whispering Angel 2024':300,
   'Antinori-Bolgheri Scalabrone Doc':300
 };
-// Brands that give 16 softs instead of 8
+
 var MAGNUM_BRANDS={'Belvedere Magnum 175cl':1};
 var SPIRITS=['Vodka','Gin','Whiskey','Rum','Tequila','Cognac','Champagne','Prosecco','Vino Bianco','Vino Rosso','Vino Rosé','Altro'];
 var SUPER={Vodka:1,Gin:1,Whiskey:1,Rum:1,Tequila:1,Cognac:1,Altro:1};
-
-// Label overrides for display
 var LABELS={G1G2:'G1 + G2', L1S:'L1 Sinistra', L1D:'L1 Destra', L2S:'L2 Sinistra', L2D:'L2 Destra'};
-
-var ALL_IDS=['D1','D2','D3','D4','D5','10','9','8','7','6','5','4','2','10A','9A','8A','7A','6A','5A','4A','1','J','G7','G6','G5','G1G2','L1S','L1D','L2S','L2D','E7','E8','E3','E4','51','52','53','54','55','56'];
+var ALL_IDS=['D1','D2','D3','D4','D5','10','9','8','7','6','5','4','2','10A','9A','8A','7A','6A','5A','4A','1','J','G7','G6','G5','G1G2','L1S','L1D','L2S','L2D','E7','E8','E3','E4','51','52','53','54','55','56','T1','T3','T4'];
 
 var TD={},CT=null,CC=0,CCB=null;
 
-// ── FIREBASE SETUP ─────────────────────────────────────────
 var db = null;
 var dbStorico = null;
 
@@ -638,7 +596,9 @@ function initFirebase() {
   db = firebase.database().ref('tavoli');
   dbStorico = firebase.database().ref('storico');
 
-  // CONNECTION MONITOR
+  // 1) Carica subito da localStorage — istantaneo, nessuna attesa di rete
+  loadLocal();
+
   firebase.database().ref('.info/connected').on('value', function(snap) {
     var online = snap.val() === true;
     var dot = document.getElementById('connDot');
@@ -647,10 +607,24 @@ function initFirebase() {
     if (lbl) { lbl.textContent = online ? 'Online' : 'Offline'; }
   });
 
-  // MAIN DATA LISTENER
+  // 2) Poi sincronizza con Firebase (può arrivare dopo qualche secondo)
   db.on('value', function(snap){
     var remote = snap.val();
-    TD = normalizeTD(remote);
+    // Se Firebase è vuoto ma abbiamo dati locali, rispettiamo il locale
+    // (es: firebase azzerato ma chiusura non ancora fatta dall'utente)
+    if(remote === null){
+      // Firebase vuoto — non sovrascrivere se ci sono dati locali validi
+      var localHasData = Object.keys(TD).some(function(k){ return hasD(k); });
+      if(localHasData){
+        // Ripristina Firebase dai dati locali
+        db.set(TD).catch(function(e){console.warn('Firebase restore error:',e);});
+        return;
+      }
+      TD = {};
+    } else {
+      TD = normalizeTD(remote);
+      saveLocal(); // aggiorna cache locale con dati remoti
+    }
     buildMap();
     if(CT && document.getElementById('sheet').classList.contains('on')){
       if(!TD[CT] || CC >= TD[CT].clients.length) CC = 0;
@@ -660,7 +634,6 @@ function initFirebase() {
   });
 }
 
-// Firebase converts JS arrays to objects {0:{...},1:{...}} — normalize back
 function normalizeClients(raw){
   if(!raw) return [mkC(1)];
   var arr=Array.isArray(raw)?raw:Object.keys(raw).sort(function(a,b){return a-b;}).map(function(k){return raw[k];});
@@ -682,17 +655,33 @@ function normalizeTD(raw){
   return out;
 }
 
-// Write full TD to Firebase (debounced to avoid excessive writes)
+// ── LOCAL STORAGE BACKUP ───────────────────────────────────
+// Salva/carica su localStorage per persistenza immediata al reload.
+// Firebase è il master remoto; localStorage è la cache locale.
+var LS_KEY = 'td21_tavoli';
+
+function saveLocal(){
+  try { localStorage.setItem(LS_KEY, JSON.stringify(TD)); } catch(e){}
+}
+function loadLocal(){
+  try {
+    var raw = localStorage.getItem(LS_KEY);
+    if(raw){ TD = normalizeTD(JSON.parse(raw)); buildMap(); }
+  } catch(e){}
+}
+function clearLocal(){
+  try { localStorage.removeItem(LS_KEY); } catch(e){}
+}
+
 var _saveTimer=null;
 function saveToFirebase(){
+  // Salva subito in locale, poi sincronizza Firebase con debounce
+  saveLocal();
   clearTimeout(_saveTimer);
   _saveTimer=setTimeout(function(){
     db.set(TD).catch(function(e){console.warn('Firebase write error:',e);});
   },400);
 }
-
-
-// ── STORICO TURNI ──────────────────────────────────────────
 
 function saveStorico(snapshot) {
   var now = new Date();
@@ -703,7 +692,6 @@ function saveStorico(snapshot) {
   var h = now.getHours(), m = now.getMinutes();
   var timeStr = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
 
-  // Compute summary stats
   var activeTables = Object.keys(snapshot).filter(function(k) {
     return snapshot[k] && snapshot[k].clients && normalizeClients(snapshot[k].clients).some(function(c) {
       return totB(c) > 0 || c.tickets > 0;
@@ -725,7 +713,6 @@ function saveStorico(snapshot) {
 
   dbStorico.child(String(ts)).set(entry).catch(function(e) { console.warn('Storico save error:', e); });
 
-  // Keep only last 7 — clean old ones
   dbStorico.orderByChild('ts').limitToFirst(100).once('value', function(snap) {
     var all = [];
     snap.forEach(function(child) { all.push(child.key); });
@@ -741,12 +728,12 @@ function loadStorico() {
   el.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px;">Caricamento...</div>';
   dbStorico.orderByChild('ts').limitToLast(7).once('value', function(snap) {
     var items = [];
-    snap.forEach(function(child) { items.unshift(child.val()); }); // newest first
+    snap.forEach(function(child) { items.unshift(child.val()); });
     if (!items.length) {
       el.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px;">Nessun turno salvato.</div>';
       return;
     }
-    el.innerHTML = items.map(function(item, idx) {
+    el.innerHTML = items.map(function(item) {
       return '<div class="storico-item" onclick="openStoricoModal(' + item.ts + ')">' +
         '<div class="storico-left">' +
           '<div class="storico-date">' + item.date + ' · ' + item.time + '</div>' +
@@ -765,7 +752,6 @@ function openStoricoModal(ts) {
     if (!item) return;
     document.getElementById('smodTitle').textContent = item.date + ' · ' + item.time;
 
-    // Build report from stored data
     var storedTD = item.data || {};
     var active = Object.keys(storedTD).filter(function(k) {
       return storedTD[k] && storedTD[k].clients && normalizeClients(storedTD[k].clients).some(function(c) {
@@ -817,7 +803,6 @@ function closeStoricoModal() {
   document.getElementById('smodOv').classList.remove('on');
 }
 
-// ── CLOSE SHEET WITH CONFIRMATION ─────────────────────────
 function sheetHasData() {
   if (!CT || !TD[CT]) return false;
   return TD[CT].clients.some(function(c) {
@@ -834,17 +819,16 @@ function requestCloseSheet() {
 }
 
 function getT(id){if(!TD[id])TD[id]={clients:[mkC(1)]};return TD[id];}
-function mkC(n){return{num:n,bottles:[{spirit:'',brand:'',qty:1}],softs:{},tickets:0,pax:0,extras:{}};}function totB(c){return c.bottles.reduce(function(s,b){return s+(b.spirit?(parseInt(b.qty)||0):0);},0);}
+function mkC(n){return{num:n,bottles:[{spirit:'',brand:'',qty:1}],softs:{},tickets:0,pax:0,extras:{}};}
+function totB(c){return c.bottles.reduce(function(s,b){return s+(b.spirit?(parseInt(b.qty)||0):0);},0);}
 function supB(c){return c.bottles.filter(function(b){return b.spirit&&SUPER[b.spirit];}).reduce(function(s,b){var qty=parseInt(b.qty)||0;return s+(MAGNUM_BRANDS[b.brand]?qty*2:qty);},0);}
 function usedS(c){return Object.values(c.softs).reduce(function(s,v){return s+(v||0);},0);}
-// For RED color: only the LAST (current) client counts
 function lastClientHasD(id){
   if(!TD[id])return false;
   var clients=TD[id].clients;
   var last=clients[clients.length-1];
   return totB(last)>0||(last.tickets>0);
 }
-// For REPORT inclusion: any client has data
 function hasD(id){return TD[id]&&TD[id].clients.some(function(c){return totB(c)>0||(c.tickets>0);});}
 
 function tick(){
@@ -863,25 +847,18 @@ function updateBtn(id){
   var el=document.getElementById('tb-'+id);if(!el)return;
   var occupied=lastClientHasD(id);
   var anyData=hasD(id);
-  // multi = there are previous clients with data (table has history even if current client is empty)
   var hasPrevData=TD[id]&&TD[id].clients.length>1&&TD[id].clients.slice(0,-1).some(function(c){return totB(c)>0||(c.tickets>0);});
 
-  // Remove old state classes
   el.classList.remove('act','multi');
 
   if(occupied){
-    // Current client has data → full red
     el.classList.add('act');
   } else if(hasPrevData){
-    // Previous clients have data but current is empty → red border only
     el.classList.add('multi');
   }
-  // else: completely free → just gold border (default)
 
-  // Update inline text colors on tall/special buttons
   var nameEls=el.querySelectorAll('.tname,.tname-sm');
   nameEls.forEach(function(ne){ne.style.color=occupied?'#fff':'';});
-  // Also handle inline span elements (J, G5, G1G2 labels)
   el.querySelectorAll('span[style*="font-weight:900"]').forEach(function(s){s.style.color=occupied?'#fff':'';});
 
   var d=el.querySelector('.tdot'),inf=el.querySelector('.tinfo');
@@ -890,7 +867,6 @@ function updateBtn(id){
     var tot=TD[id].clients.reduce(function(s,c){return s+totB(c);},0);
     var cl=TD[id].clients.length;
     var i=document.createElement('span');i.className='tinfo';
-    // tinfo color depends on state
     i.style.color=occupied?'#ffcdd2':(hasPrevData?'#c62828':'#9a7820');
     i.textContent=tot+'x'+(cl>1?'·'+cl+'c':'');el.appendChild(i);
     var dot=document.createElement('span');dot.className='tdot';
@@ -915,10 +891,15 @@ function showPage(name){
 
 function askClearStorico(){
   showCov('Cancellare lo storico?','Eliminare tutti i turni salvati? Questa operazione non può essere annullata.',function(){
-    dbStorico.remove().then(function(){
-      showCov('Fatto!','Storico turni eliminato.',function(){},true);
-      loadStorico();
-    }).catch(function(e){console.warn('Storico remove error:',e);});
+    dbStorico.remove()
+      .then(function(){
+        showCov('Fatto!','Storico turni eliminato.',function(){},true);
+        loadStorico();
+      })
+      .catch(function(e){
+        console.warn('Storico remove error:',e);
+        showCov('Errore','Impossibile cancellare lo storico. Controlla la connessione.',function(){},true);
+      });
   });
 }
 
@@ -926,10 +907,10 @@ function askClearAll(){
   var cnt=Object.keys(TD).filter(function(k){return hasD(k);}).length;
   if(cnt===0){showCov('Nessun dato','Non ci sono tavoli attivi da azzerare.',function(){},true);return;}
   showCov('Azzera tutti i tavoli','Sei sicuro di voler cancellare tutti i dati di '+cnt+' tavolo'+(cnt===1?'':'li')+'? Questa operazione non può essere annullata.',function(){
-    // Save snapshot to storico before clearing
     saveStorico(JSON.parse(JSON.stringify(TD)));
     TD={};CC=0;
     db.set(null);
+    clearLocal();
     buildMap();
     document.getElementById('chiusura-count').textContent='0';
     showCov('Fatto!','Turno salvato nello storico. Tutti i tavoli sono stati azzerati.',function(){},true);
@@ -966,7 +947,6 @@ function renderSheet(){
   c.bottles.forEach(function(b,i){
     var opts='<option value="">Bevanda</option>';
     SPIRITS.forEach(function(s){opts+='<option value="'+s+'"'+(b.spirit===s?' selected':'')+'>'+s+'</option>';});
-    // Brand dropdown — if spirit has brands, show select; else text input
     var brandList=b.spirit&&BRANDS[b.spirit]&&BRANDS[b.spirit].length?BRANDS[b.spirit]:null;
     var brandField='';
     if(brandList){
@@ -1050,10 +1030,9 @@ function refTot(){
   if(b)b.textContent=tb;
   if(a){a.textContent=al;if(mag)mag.style.display=hasMag?'block':'none';}
   if(u){u.textContent=us;ov?u.classList.add('over'):u.classList.remove('over');}
-  // live update the map button color
   updateBtn(CT);
 }
-function askClear(){showCov('Pulire tavolo','Cancellare tutti i clienti e le bottiglie di questo tavolo?',function(){delete TD[CT];CC=0;saveToFirebase();closeSheet();});}
+function askClear(){showCov('Pulire tavolo','Cancellare tutti i clienti e le bottiglie di questo tavolo?',function(){delete TD[CT];CC=0;saveToFirebase();saveLocal();closeSheet();});}
 
 function renderReport(){
   var active=Object.keys(TD).filter(function(k){return hasD(k);});
@@ -1080,6 +1059,8 @@ function renderReport(){
     var clients=normalizeClients(t.clients);
     var tot=clients.reduce(function(s,c){return s+totB(c);},0);
     var lbl=getLabel(id);
+    // FIX 1: thead aveva 3 colonne (Tavolo, Clienti, Bottiglie) ma le righe solo 2 celle.
+    // Rimossa la colonna "Clienti" dal thead per coerenza con le righe del corpo.
     rows+='<tr><td class="rmt">Tavolo '+lbl+'</td><td class="rnum">'+(tot>0?tot:'—')+'</td></tr>';
     clients.forEach(function(c){
       var bots=(c.bottles||[]).filter(function(b){return b.spirit;});
@@ -1101,7 +1082,16 @@ function renderReport(){
     });
   });
   function pills(obj){return Object.keys(obj).sort(function(a,b){return obj[b]-obj[a];}).map(function(k){return'<span class="pill">'+k+' <b>'+obj[k]+'x</b></span>';}).join('');}
-  el.innerHTML='<div class="rtop"><div class="rbrand">Terrazza <b>21</b></div><div class="rsub">Rapporto di Turno</div><div class="rdate">'+ds+' · '+ts+'</div></div><div class="kpis"><div class="kpi"><div class="kval">'+totalG+'</div><div class="klbl">Bottiglie</div></div><div class="kpi"><div class="kval">'+active.length+'</div><div class="klbl">Tavoli</div></div><div class="kpi"><div class="kval">'+totalS+'</div><div class="klbl">Soft</div></div></div><div class="rsec"><div class="rslbl">Per tavolo</div><table class="rtable"><thead><tr><th>Tavolo</th><th>Clienti</th><th style="text-align:right">Bottiglie</th></tr></thead><tbody>'+rows+'</tbody></table></div><div class="rsec"><div class="rslbl">Spirits venduti</div><div class="pills">'+(pills(spC)||'—')+'</div></div><div class="rsec"><div class="rslbl">Soft drinks usciti</div><div class="pills">'+(pills(sfC)||'—')+'</div></div><div class="sbtns"><button class="sbtn swa" onclick="shareWA()"><svg width="18" height="18" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Invia su WhatsApp</button><button class="sbtn scp" onclick="copyRep()">📋 Copia testo</button></div>';
+  // FIX 1 applicato: thead ora ha solo 2 colonne (Tavolo, Bottiglie)
+  el.innerHTML='<div class="rtop"><div class="rbrand">Terrazza <b>21</b></div><div class="rsub">Rapporto di Turno</div><div class="rdate">'+ds+' · '+ts+'</div></div>'+
+    '<div class="kpis"><div class="kpi"><div class="kval">'+totalG+'</div><div class="klbl">Bottiglie</div></div><div class="kpi"><div class="kval">'+active.length+'</div><div class="klbl">Tavoli</div></div><div class="kpi"><div class="kval">'+totalS+'</div><div class="klbl">Soft</div></div></div>'+
+    '<div class="rsec"><div class="rslbl">Per tavolo</div>'+
+    '<table class="rtable"><thead><tr><th>Tavolo</th><th style="text-align:right">Bottiglie</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    '<div class="rsec"><div class="rslbl">Spirits venduti</div><div class="pills">'+(pills(spC)||'—')+'</div></div>'+
+    '<div class="rsec"><div class="rslbl">Soft drinks usciti</div><div class="pills">'+(pills(sfC)||'—')+'</div></div>'+
+    '<div class="sbtns">'+
+    '<button class="sbtn swa" onclick="shareWA()"><svg width="18" height="18" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Invia su WhatsApp</button>'+
+    '<button class="sbtn scp" onclick="copyRep()">📋 Copia testo</button></div>';
 }
 
 function buildTxt(){
@@ -1110,15 +1100,63 @@ function buildTxt(){
   var ds=days[now.getDay()]+' '+now.getDate()+' '+months[now.getMonth()];
   var h=now.getHours(),m=now.getMinutes(),ts=(h<10?'0':'')+h+':'+(m<10?'0':'')+m;
   var totalG=0,spC={},sfC={};
-  active.forEach(function(id){TD[id].clients.forEach(function(c){c.bottles.forEach(function(b){if(!b.spirit)return;var q=parseInt(b.qty)||0;totalG+=q;spC[b.spirit]=(spC[b.spirit]||0)+q;});Object.keys(c.softs).forEach(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});if(d&&c.softs[sid]>0)sfC[d.n]=(sfC[d.n]||0)+c.softs[sid];});});});
+  // FIX 2: usa normalizeClients per sicurezza dopo reload Firebase
+  active.forEach(function(id){
+    normalizeClients(TD[id].clients).forEach(function(c){
+      c.bottles.forEach(function(b){if(!b.spirit)return;var q=parseInt(b.qty)||0;totalG+=q;spC[b.spirit]=(spC[b.spirit]||0)+q;});
+      Object.keys(c.softs).forEach(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});if(d&&c.softs[sid]>0)sfC[d.n]=(sfC[d.n]||0)+c.softs[sid];});
+    });
+  });
   var txt='🍾 *TERRAZZA DUOMO 21*\n📋 Rapporto di Turno\n📅 '+ds+' · '+ts+'\n\n*RIEPILOGO*\n• Bottiglie totali: *'+totalG+'*\n• Tavoli attivi: *'+active.length+'*\n\n*DETTAGLIO PER TAVOLO*\n';
-  active.forEach(function(id){var t=TD[id],tot=t.clients.reduce(function(s,c){return s+totB(c);},0),lbl=getLabel(id);txt+='\n🪑 *Tavolo '+lbl+'* — '+tot+' bottigli'+(tot===1?'a':'e')+'\n';t.clients.forEach(function(c){var bots=c.bottles.filter(function(b){return b.spirit;});if(!bots.length&&!(c.tickets>0))return;if(bots.length)txt+='  '+c.num+'° cliente: '+bots.map(function(b){var price=b.brand&&PRICES[b.brand]?' ('+PRICES[b.brand]+'€)':'';return b.qty+'x '+b.spirit+(b.brand?' — '+b.brand:'')+price;}).join(', ')+'\n';var sf=Object.keys(c.softs).filter(function(sid){return c.softs[sid]>0;}).map(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});return c.softs[sid]+'x '+(d?d.n:sid);});if(sf.length)txt+='    Soft: '+sf.join(', ')+'\n';if(c.tickets>0)txt+='    🎫 '+c.tickets+' ticket\n';});});
+  active.forEach(function(id){
+    // FIX 2: normalizeClients applicato anche qui
+    var clients=normalizeClients(TD[id].clients);
+    var tot=clients.reduce(function(s,c){return s+totB(c);},0);
+    var lbl=getLabel(id);
+    txt+='\n🪑 *Tavolo '+lbl+'* — '+tot+' bottigli'+(tot===1?'a':'e')+'\n';
+    clients.forEach(function(c){
+      var bots=c.bottles.filter(function(b){return b.spirit;});
+      if(!bots.length&&!(c.tickets>0))return;
+      if(bots.length)txt+='  '+c.num+'° cliente: '+bots.map(function(b){var price=b.brand&&PRICES[b.brand]?' ('+PRICES[b.brand]+'€)':'';return b.qty+'x '+b.spirit+(b.brand?' — '+b.brand:'')+price;}).join(', ')+'\n';
+      var sf=Object.keys(c.softs).filter(function(sid){return c.softs[sid]>0;}).map(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});return c.softs[sid]+'x '+(d?d.n:sid);});
+      if(sf.length)txt+='    Soft: '+sf.join(', ')+'\n';
+      if(c.tickets>0)txt+='    🎫 '+c.tickets+' ticket\n';
+    });
+  });
   txt+='\n*SPIRITS*\n';Object.keys(spC).sort(function(a,b){return spC[b]-spC[a];}).forEach(function(s){txt+='• '+s+': '+spC[s]+'x\n';});
   if(Object.keys(sfC).length){txt+='\n*SOFT DRINKS*\n';Object.keys(sfC).sort(function(a,b){return sfC[b]-sfC[a];}).forEach(function(s){txt+='• '+s+': '+sfC[s]+'x\n';});}
   return txt;
 }
+
 function shareWA(){var t=buildTxt();if(!t)return;window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank');}
-function copyRep(){var t=buildTxt();if(!t)return;if(navigator.clipboard){navigator.clipboard.writeText(t).then(function(){showCov('Copiato!','Rapporto copiato negli appunti.',function(){},true);});}}
+
+// FIX 3: fallback per browser senza clipboard API (non-HTTPS o vecchi browser)
+function copyRep(){
+  var t=buildTxt();
+  if(!t)return;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t)
+      .then(function(){showCov('Copiato!','Rapporto copiato negli appunti.',function(){},true);})
+      .catch(function(){fallbackCopy(t);});
+  } else {
+    fallbackCopy(t);
+  }
+}
+function fallbackCopy(text){
+  var ta=document.createElement('textarea');
+  ta.value=text;
+  ta.style.position='fixed';ta.style.top='-9999px';ta.style.left='-9999px';
+  document.body.appendChild(ta);
+  ta.focus();ta.select();
+  try{
+    document.execCommand('copy');
+    showCov('Copiato!','Rapporto copiato negli appunti.',function(){},true);
+  } catch(e){
+    showCov('Errore','Impossibile copiare. Prova a condividere via WhatsApp.',function(){},true);
+  }
+  document.body.removeChild(ta);
+}
+
 function showCov(title,msg,cb,infoOnly){
   document.getElementById('ctitle').textContent=title;
   document.getElementById('cmsg').textContent=msg;
@@ -1132,10 +1170,112 @@ function closeCov(){document.getElementById('cov').classList.remove('on');CCB=nu
 document.getElementById('cok').onclick=function(){if(CCB)CCB();closeCov();};
 
 window.addEventListener('DOMContentLoaded',function(){
+  // Mostra subito i dati locali (se esistono) senza attendere Firebase
   var hd=document.getElementById('hDate');
   if(hd) hd.textContent='Connessione...';
   initFirebase();
 });
+</script>
+  <!-- PWA INSTALL BANNER -->
+  <div id="pwa-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;background:#1a1510;border-top:2px solid #c9a940;padding:14px 16px;padding-bottom:max(14px,env(safe-area-inset-bottom,14px));z-index:500;flex-direction:column;gap:10px;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:44px;height:44px;background:#c9a940;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="26" height="26" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><g fill="#1a1510"><polygon points="17,24 20,24 19.8,18 18.2,18"/><polygon points="13,24 16,24 15.6,13 14.4,13"/><polygon points="21,24 24,24 23.6,13 22.4,13"/><polygon points="9,24 12,24 11.4,9 10.6,9"/><polygon points="25,24 28,24 27.4,9 26.6,9"/><polygon points="5,24 8,24 7.2,5 6.8,5"/><polygon points="29,24 32,24 31.2,5 30.8,5"/><polygon points="3,24 6,24 4.5,1 3.5,1"/><polygon points="31,24 34,24 33.5,1 32.5,1"/></g><line x1="1" y1="25.5" x2="37" y2="25.5" stroke="#1a1510" stroke-width="1"/><text x="19" y="33" text-anchor="middle" font-family="Helvetica Neue,Arial,sans-serif" font-size="5" font-weight="400" letter-spacing="1.5" fill="#1a1510">TERRAZZA 21</text></svg>
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:800;color:#fff;">Installa Terrazza 21</div>
+        <div style="font-size:11px;color:#8c7d6a;margin-top:2px;">Aggiungi alla schermata Home come app</div>
+      </div>
+      <button onclick="document.getElementById('pwa-banner').style.display='none';localStorage.setItem('pwa-dismissed','1');" style="color:#8c7d6a;font-size:20px;padding:4px;">✕</button>
+    </div>
+    <div id="pwa-ios-hint" style="display:none;background:#2a2018;border-radius:8px;padding:10px 12px;font-size:11px;color:#c9a940;line-height:1.6;">
+      📱 Su Safari: tocca <b style="color:#fff;">⎙ Condividi</b> → <b style="color:#fff;">"Aggiungi a schermata Home"</b>
+    </div>
+    <button id="pwa-install-btn" style="display:none;width:100%;padding:12px;background:#c9a940;color:#1a1510;border:none;border-radius:8px;font-family:-apple-system,sans-serif;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;">Installa App</button>
+  </div>
+
+<script>
+// ── PWA: MANIFEST INLINE ────────────────────────────────────
+(function(){
+  var manifest = {
+    name: "Terrazza Duomo 21",
+    short_name: "Terrazza 21",
+    description: "Gestione tavoli Terrazza Duomo 21 Lounge Bar",
+    start_url: location.href.split('?')[0],
+    display: "standalone",
+    orientation: "portrait",
+    background_color: "#1a1510",
+    theme_color: "#1a1510",
+    icons: [
+      {
+        src: "data:image/svg+xml;base64," + btoa('<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192"><rect width="192" height="192" rx="36" fill="#1a1510"/><g fill="#c9a940"><polygon points="76,110 82,110 81,88 77,88"/><polygon points="86,110 93,110 91,72 88,72"/><polygon points="96,110 103,110 101,72 98,72"/><polygon points="106,110 113,110 111,88 107,88"/><polygon points="66,110 72,110 71,95 67,95"/><polygon points="116,110 122,110 121,95 117,95"/><polygon points="56,110 62,110 60,100 58,100"/><polygon points="126,110 132,110 130,100 128,100"/><polygon points="88,110 96,110 94,58 90,58"/></g><line x1="44" y1="113" x2="148" y2="113" stroke="#c9a940" stroke-width="2"/><text x="96" y="132" text-anchor="middle" font-family="Helvetica Neue,Arial,sans-serif" font-size="16" font-weight="400" letter-spacing="3" fill="#c9a940">TERRAZZA 21</text><text x="96" y="148" text-anchor="middle" font-family="Helvetica Neue,Arial,sans-serif" font-size="10" font-weight="400" letter-spacing="4" fill="#7a6648">LOUNGE BAR</text></svg>'),
+        sizes: "192x192",
+        type: "image/svg+xml",
+        purpose: "any maskable"
+      },
+      {
+        src: "data:image/svg+xml;base64," + btoa('<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" rx="96" fill="#1a1510"/><g fill="#c9a940"><polygon points="196,300 216,300 213,230 199,230"/><polygon points="226,300 250,300 244,180 232,180"/><polygon points="256,300 280,300 274,180 262,180"/><polygon points="286,300 310,300 304,230 292,230"/><polygon points="166,300 190,300 186,255 170,255"/><polygon points="316,300 340,300 336,255 320,255"/><polygon points="136,300 160,300 154,270 142,270"/><polygon points="346,300 370,300 364,270 352,270"/><polygon points="230,300 282,300 274,140 238,140"/></g><line x1="116" y1="308" x2="396" y2="308" stroke="#c9a940" stroke-width="4"/><text x="256" y="358" text-anchor="middle" font-family="Helvetica Neue,Arial,sans-serif" font-size="38" font-weight="400" letter-spacing="6" fill="#c9a940">TERRAZZA 21</text><text x="256" y="395" text-anchor="middle" font-family="Helvetica Neue,Arial,sans-serif" font-size="24" font-weight="400" letter-spacing="8" fill="#7a6648">LOUNGE BAR</text></svg>'),
+        sizes: "512x512",
+        type: "image/svg+xml",
+        purpose: "any maskable"
+      }
+    ]
+  };
+  var blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+  var url = URL.createObjectURL(blob);
+  document.getElementById('pwa-manifest').href = url;
+})();
+
+// ── PWA: SERVICE WORKER (cache offline) ────────────────────
+if('serviceWorker' in navigator){
+  var swCode = `
+const CACHE = 'td21-v1';
+const URLS = [location.href];
+self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/']))); self.skipWaiting(); });
+self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k))))); });
+self.addEventListener('fetch', e => { e.respondWith(fetch(e.request).catch(() => caches.match(e.request))); });
+`;
+  var swBlob = new Blob([swCode], {type:'text/javascript'});
+  var swUrl = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swUrl).catch(function(){});
+}
+
+// ── PWA: INSTALL PROMPT ────────────────────────────────────
+var deferredPrompt = null;
+var dismissed = localStorage.getItem('pwa-dismissed');
+var isInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+if(!isInstalled && !dismissed){
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+  var banner = document.getElementById('pwa-banner');
+
+  if(isIOS){
+    // iOS: show hint after 2s
+    setTimeout(function(){
+      banner.style.display = 'flex';
+      document.getElementById('pwa-ios-hint').style.display = 'block';
+    }, 2000);
+  } else {
+    // Android/Chrome: wait for beforeinstallprompt
+    window.addEventListener('beforeinstallprompt', function(e){
+      e.preventDefault();
+      deferredPrompt = e;
+      setTimeout(function(){
+        banner.style.display = 'flex';
+        document.getElementById('pwa-install-btn').style.display = 'block';
+      }, 2000);
+    });
+    document.getElementById('pwa-install-btn').addEventListener('click', function(){
+      if(deferredPrompt){
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(function(r){
+          if(r.outcome==='accepted') banner.style.display='none';
+          deferredPrompt = null;
+        });
+      }
+    });
+  }
+}
 </script>
 </body>
 </html>
