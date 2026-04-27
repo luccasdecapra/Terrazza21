@@ -332,7 +332,7 @@ select:focus,input:focus{border-color:var(--gold2);}
     <div style="padding:10px 0;">
       <div style="background:var(--dark);border-radius:10px;padding:20px 18px;margin-bottom:20px;">
         <div style="font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:#6a5c46;margin-bottom:6px;">Chiusura Turno</div>
-        <div style="font-size:22px;font-weight:300;font-style:italic;color:#fff;">Azzera <b style="font-weight:800;font-style:normal;color:#e8dfc8;">tutto</b></div>
+        <div style="font-size:22px;font-weight:300;font-style:italic;color:#fff;">Cancella <b style="font-weight:800;font-style:normal;color:#e8dfc8;">tutto</b></div>
         <div style="font-size:13px;color:#7a6a54;margin-top:8px;line-height:1.5;">Cancella tutti i dati di tutti i tavoli. Usa questa funzione a fine turno per preparare la serata successiva.</div>
       </div>
       <div style="background:var(--bg2);border:2px solid var(--border);border-radius:10px;padding:16px 18px;margin-bottom:14px;">
@@ -711,6 +711,7 @@ function saveStorico(snapshot) {
     data: snapshot
   };
 
+  if(!dbStorico){ console.warn('dbStorico not ready'); return; }
   dbStorico.child(String(ts)).set(entry).catch(function(e) { console.warn('Storico save error:', e); });
 
   dbStorico.orderByChild('ts').limitToFirst(100).once('value', function(snap) {
@@ -906,11 +907,14 @@ function askClearStorico(){
 function askClearAll(){
   var cnt=Object.keys(TD).filter(function(k){return hasD(k);}).length;
   if(cnt===0){showCov('Nessun dato','Non ci sono tavoli attivi da azzerare.',function(){},true);return;}
-  showCov('Azzera tutti i tavoli','Sei sicuro di voler cancellare tutti i dati di '+cnt+' tavolo'+(cnt===1?'':'li')+'? Questa operazione non può essere annullata.',function(){
-    saveStorico(JSON.parse(JSON.stringify(TD)));
+  showCov('Cancellare tutto','Sei sicuro di voler cancellare tutti i dati di '+cnt+' tavolo'+(cnt===1?'':'li')+'? Questa operazione non può essere annullata.',function(){
+    // Guard: salva storico solo se Firebase è pronto
+    try {
+      if(dbStorico) saveStorico(JSON.parse(JSON.stringify(TD)));
+    } catch(e){ console.warn('Storico save skipped:', e); }
     TD={};CC=0;
-    db.set(null);
     clearLocal();
+    if(db) db.set(null).catch(function(e){console.warn('Firebase clear error:',e);});
     buildMap();
     document.getElementById('chiusura-count').textContent='0';
     showCov('Fatto!','Turno salvato nello storico. Tutti i tavoli sono stati azzerati.',function(){},true);
@@ -1034,6 +1038,21 @@ function refTot(){
 }
 function askClear(){showCov('Pulire tavolo','Cancellare tutti i clienti e le bottiglie di questo tavolo?',function(){delete TD[CT];CC=0;saveToFirebase();saveLocal();closeSheet();});}
 
+// Helper: calcola il valore totale in € di un cliente
+function totEur(c){
+  return (c.bottles||[]).reduce(function(s,b){
+    if(!b.spirit) return s;
+    var qty=parseInt(b.qty)||0;
+    var p=b.brand&&PRICES[b.brand]?PRICES[b.brand]:0;
+    return s+qty*p;
+  },0);
+}
+// Helper: formatta € con separatore migliaia
+function fmtEur(v){
+  if(!v) return '—';
+  return v.toLocaleString('it-IT')+'€';
+}
+
 function renderReport(){
   var active=Object.keys(TD).filter(function(k){return hasD(k);});
   var el=document.getElementById('repContent');
@@ -1043,13 +1062,14 @@ function renderReport(){
   var months=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
   var ds=days[now.getDay()]+' '+now.getDate()+' '+months[now.getMonth()]+' '+now.getFullYear();
   var h=now.getHours(),m=now.getMinutes(),ts=(h<10?'0':'')+h+':'+(m<10?'0':'')+m;
-  var totalG=0,totalS=0,spC={},sfC={};
+  var totalG=0,totalS=0,totalEur=0,spC={},sfC={};
   active.forEach(function(id){
     if(!TD[id]) return;
     var clients=normalizeClients(TD[id].clients);
     clients.forEach(function(c){
       (c.bottles||[]).forEach(function(b){if(!b.spirit)return;var q=parseInt(b.qty)||0;totalG+=q;spC[b.spirit]=(spC[b.spirit]||0)+q;});
       Object.keys(c.softs||{}).forEach(function(sid){var v=c.softs[sid];totalS+=v;var sd=SOFTS.find(function(s){return s.id===sid;});if(sd&&v>0)sfC[sd.n]=(sfC[sd.n]||0)+v;});
+      totalEur+=totEur(c);
     });
   });
   var rows='';
@@ -1058,10 +1078,14 @@ function renderReport(){
     if(!t||!t.clients) return;
     var clients=normalizeClients(t.clients);
     var tot=clients.reduce(function(s,c){return s+totB(c);},0);
+    var tableEur=clients.reduce(function(s,c){return s+totEur(c);},0);
     var lbl=getLabel(id);
-    // FIX 1: thead aveva 3 colonne (Tavolo, Clienti, Bottiglie) ma le righe solo 2 celle.
-    // Rimossa la colonna "Clienti" dal thead per coerenza con le righe del corpo.
-    rows+='<tr><td class="rmt">Tavolo '+lbl+'</td><td class="rnum">'+(tot>0?tot:'—')+'</td></tr>';
+    rows+='<tr>'+
+      '<td class="rmt">Tavolo '+lbl+'<span style="display:block;font-size:10px;font-weight:600;color:var(--muted);">'+tot+' bottigl'+(tot===1?'ia':'ie')+'</span></td>'+
+      '<td class="rnum" style="vertical-align:middle;">'+
+        (tableEur>0?'<span style="font-size:17px;font-weight:800;color:var(--gold);">'+fmtEur(tableEur)+'</span>':'<span style="color:var(--muted);">—</span>')+
+      '</td>'+
+    '</tr>';
     clients.forEach(function(c){
       var bots=(c.bottles||[]).filter(function(b){return b.spirit;});
       var sfts=Object.keys(c.softs||{}).filter(function(sid){return c.softs[sid]>0;}).map(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});return(c.softs[sid])+'x '+(d?d.n:sid);}).join(', ');
@@ -1069,25 +1093,32 @@ function renderReport(){
       var extrasNames={shot:'Shot',sale:'Sale',limone:'Limone',arancia:'Arancia',sciropo:'Sciropo'};
       var activeExtras=extrasLabels.filter(function(k){return(c.extras||{})[k];}).map(function(k){return extrasNames[k];}).join(', ');
       if(!bots.length&&!(c.tickets>0)&&!sfts&&!activeExtras) return;
+      var cEur=totEur(c);
       var bs=bots.map(function(b){
         var price=b.brand&&PRICES[b.brand]?' ('+PRICES[b.brand]+'€)':'';
         return b.qty+'x '+b.spirit+(b.brand?' — '+b.brand:'')+price;
       }).join(', ');
       var tk=c.tickets>0?' 🎫 '+c.tickets+' ticket':'';
       var paxStr=c.pax>0?' · 👥 '+c.pax+' pers.':'';
-      rows+='<tr class="drow"><td colspan="2">'+c.num+'° cliente: '+(bs||'—')+tk+paxStr+
+      rows+='<tr class="drow"><td colspan="2">'+c.num+'° cliente'+(cEur>0?' · <b style="color:var(--gold);">'+fmtEur(cEur)+'</b>':'')+': '+(bs||'—')+tk+paxStr+
         (sfts?'<br><span style="color:var(--muted);font-size:10px;">🧃 '+sfts+'</span>':'')+
         (activeExtras?'<br><span style="color:var(--muted);font-size:10px;">➕ '+activeExtras+'</span>':'')+
         '</td></tr>';
     });
   });
   function pills(obj){return Object.keys(obj).sort(function(a,b){return obj[b]-obj[a];}).map(function(k){return'<span class="pill">'+k+' <b>'+obj[k]+'x</b></span>';}).join('');}
-  // FIX 1 applicato: thead ora ha solo 2 colonne (Tavolo, Bottiglie)
+  // KPI totale €: mostra grande al centro
+  var eurKpiVal = totalEur>0 ? (totalEur>=1000 ? (totalEur/1000).toFixed(1).replace('.',',')+'k' : totalEur+'') +'€' : '—';
   el.innerHTML='<div class="rtop"><div class="rbrand">Terrazza <b>21</b></div><div class="rsub">Rapporto di Turno</div><div class="rdate">'+ds+' · '+ts+'</div></div>'+
-    '<div class="kpis"><div class="kpi"><div class="kval">'+totalG+'</div><div class="klbl">Bottiglie</div></div><div class="kpi"><div class="kval">'+active.length+'</div><div class="klbl">Tavoli</div></div><div class="kpi"><div class="kval">'+totalS+'</div><div class="klbl">Soft</div></div></div>'+
-    '<div class="rsec"><div class="rslbl">Per tavolo</div>'+
-    '<table class="rtable"><thead><tr><th>Tavolo</th><th style="text-align:right">Bottiglie</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
-    '<div class="rsec"><div class="rslbl">Spirits venduti</div><div class="pills">'+(pills(spC)||'—')+'</div></div>'+
+    '<div class="kpis" style="grid-template-columns:1fr 1fr 1fr 1fr;">'+
+      '<div class="kpi"><div class="kval">'+totalG+'</div><div class="klbl">Bottiglie</div></div>'+
+      '<div class="kpi"><div class="kval">'+active.length+'</div><div class="klbl">Tavoli</div></div>'+
+      '<div class="kpi"><div class="kval">'+totalS+'</div><div class="klbl">Soft</div></div>'+
+      '<div class="kpi" style="border-color:var(--gold2);background:var(--gold-bg);"><div class="kval" style="color:var(--gold);font-size:'+(totalEur>=10000?'20':'24')+'px;">'+eurKpiVal+'</div><div class="klbl">Totale €</div></div>'+
+    '</div>'+
+    '<div class="rsec"><div class="rslbl">Valore per tavolo</div>'+
+    '<table class="rtable"><thead><tr><th>Tavolo</th><th style="text-align:right">Valore</th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    '<div class="rsec"><div class="rslbl">Bottiglie vendute</div><div class="pills">'+(pills(spC)||'—')+'</div></div>'+
     '<div class="rsec"><div class="rslbl">Soft drinks usciti</div><div class="pills">'+(pills(sfC)||'—')+'</div></div>'+
     '<div class="sbtns">'+
     '<button class="sbtn swa" onclick="shareWA()"><svg width="18" height="18" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>Invia su WhatsApp</button>'+
@@ -1107,23 +1138,25 @@ function buildTxt(){
       Object.keys(c.softs).forEach(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});if(d&&c.softs[sid]>0)sfC[d.n]=(sfC[d.n]||0)+c.softs[sid];});
     });
   });
-  var txt='🍾 *TERRAZZA DUOMO 21*\n📋 Rapporto di Turno\n📅 '+ds+' · '+ts+'\n\n*RIEPILOGO*\n• Bottiglie totali: *'+totalG+'*\n• Tavoli attivi: *'+active.length+'*\n\n*DETTAGLIO PER TAVOLO*\n';
+  var totalEurTxt=0;active.forEach(function(id){normalizeClients(TD[id].clients).forEach(function(c){totalEurTxt+=totEur(c);});});
+  var txt='🍾 *TERRAZZA DUOMO 21*\n📋 Rapporto di Turno\n📅 '+ds+' · '+ts+'\n\n*RIEPILOGO*\n• Bottiglie totali: *'+totalG+'*\n• Tavoli attivi: *'+active.length+'*\n• Valore totale: *'+fmtEur(totalEurTxt)+'*\n\n*DETTAGLIO PER TAVOLO*\n';
   active.forEach(function(id){
-    // FIX 2: normalizeClients applicato anche qui
     var clients=normalizeClients(TD[id].clients);
     var tot=clients.reduce(function(s,c){return s+totB(c);},0);
+    var tableEurTxt=clients.reduce(function(s,c){return s+totEur(c);},0);
     var lbl=getLabel(id);
-    txt+='\n🪑 *Tavolo '+lbl+'* — '+tot+' bottigli'+(tot===1?'a':'e')+'\n';
+    txt+='\n🪑 *Tavolo '+lbl+'* — '+fmtEur(tableEurTxt)+(tot?' ('+tot+' bottigl'+(tot===1?'ia':'ie')+')':'')+'\n';
     clients.forEach(function(c){
       var bots=c.bottles.filter(function(b){return b.spirit;});
       if(!bots.length&&!(c.tickets>0))return;
-      if(bots.length)txt+='  '+c.num+'° cliente: '+bots.map(function(b){var price=b.brand&&PRICES[b.brand]?' ('+PRICES[b.brand]+'€)':'';return b.qty+'x '+b.spirit+(b.brand?' — '+b.brand:'')+price;}).join(', ')+'\n';
+      var cEur=totEur(c);
+      if(bots.length)txt+='  '+c.num+'° cliente'+(cEur?' · '+fmtEur(cEur):'')+': '+bots.map(function(b){var price=b.brand&&PRICES[b.brand]?' ('+PRICES[b.brand]+'€)':'';return b.qty+'x '+b.spirit+(b.brand?' — '+b.brand:'')+price;}).join(', ')+'\n';
       var sf=Object.keys(c.softs).filter(function(sid){return c.softs[sid]>0;}).map(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});return c.softs[sid]+'x '+(d?d.n:sid);});
       if(sf.length)txt+='    Soft: '+sf.join(', ')+'\n';
       if(c.tickets>0)txt+='    🎫 '+c.tickets+' ticket\n';
     });
   });
-  txt+='\n*SPIRITS*\n';Object.keys(spC).sort(function(a,b){return spC[b]-spC[a];}).forEach(function(s){txt+='• '+s+': '+spC[s]+'x\n';});
+  txt+='\n*BOTTIGLIE*\n';Object.keys(spC).sort(function(a,b){return spC[b]-spC[a];}).forEach(function(s){txt+='• '+s+': '+spC[s]+'x\n';});
   if(Object.keys(sfC).length){txt+='\n*SOFT DRINKS*\n';Object.keys(sfC).sort(function(a,b){return sfC[b]-sfC[a];}).forEach(function(s){txt+='• '+s+': '+sfC[s]+'x\n';});}
   return txt;
 }
