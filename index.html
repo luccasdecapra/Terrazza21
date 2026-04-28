@@ -122,6 +122,15 @@ select:focus,input:focus{border-color:var(--gold2);}
 .bconf:active{opacity:.85;}
 .bdanger{padding:14px 14px;background:none;color:var(--red);border:2px solid rgba(192,57,43,.3);border-radius:var(--rsm);font-size:11px;font-weight:700;cursor:pointer;}
 
+/* RESERVA */
+.t.reserva{border-color:#1565C0;border-width:2.5px;background:#E3F2FD;}
+.t.reserva .tname,.t.reserva .tname-sm{color:#1565C0;}
+.t.reserva .tinfo{color:#1565C0;}
+.reserva-dot{position:absolute;top:3px;left:3px;width:6px;height:6px;border-radius:50%;background:#1565C0;}
+/* NOTA */
+.nota-field{width:100%;padding:10px;background:var(--bg3);border:2px solid var(--border2);border-radius:7px;color:var(--dark);font-family:-apple-system,sans-serif;font-size:14px;resize:none;outline:none;min-height:70px;}
+.nota-field:focus{border-color:var(--gold2);}
+
 /* CONNECTION INDICATOR */
 .conn-dot{width:7px;height:7px;border-radius:50%;background:#4caf50;display:inline-block;margin-right:4px;flex-shrink:0;}
 .conn-dot.off{background:#e53935;}
@@ -689,7 +698,7 @@ function normalizeTD(raw){
   var out={};
   Object.keys(raw).forEach(function(id){
     var t=raw[id]; if(!t) return;
-    out[id]={clients:normalizeClients(t.clients)};
+    out[id]={clients:normalizeClients(t.clients),nota:t.nota||'',reserva:t.reserva||false};
   });
   return out;
 }
@@ -858,8 +867,9 @@ function requestCloseSheet() {
   }
 }
 
-function getT(id){if(!TD[id])TD[id]={clients:[mkC(1)]};return TD[id];}
+function getT(id){return getTableData(id);}
 function mkC(n){return{num:n,bottles:[{spirit:'',brand:'',qty:1}],softs:{},tickets:0,pax:0,extras:{}};}
+function getTableData(id){if(!TD[id])TD[id]={clients:[mkC(1)]};if(!TD[id].nota)TD[id].nota='';if(typeof TD[id].reserva==='undefined')TD[id].reserva=false;return TD[id];}
 function totB(c){return c.bottles.reduce(function(s,b){return s+(b.spirit?(parseInt(b.qty)||0):0);},0);}
 function bottleSofts(b){
   // Garrafas >= 600€ = 16 softs cada; resto = 8 softs cada
@@ -891,6 +901,24 @@ function tick(){
 }
 setInterval(tick,1000);tick();
 
+// ── BACKUP AUTOMATICO ALLE 04:00 ──────────────────────────
+var _lastBackupDay = -1;
+function checkAutoBackup(){
+  var n=new Date();
+  var h=n.getHours(),m=n.getMinutes(),day=n.getDate();
+  if(h===4&&m===0&&day!==_lastBackupDay){
+    var active=Object.keys(TD).filter(function(k){return hasD(k);});
+    if(active.length>0){
+      _lastBackupDay=day;
+      try{
+        if(dbStorico) saveStorico(JSON.parse(JSON.stringify(TD)));
+        console.log('Backup automatico 04:00 eseguito');
+      }catch(e){console.warn('Backup auto error:',e);}
+    }
+  }
+}
+setInterval(checkAutoBackup,30000); // controlla ogni 30 secondi
+
 function getLabel(id){return LABELS[id]||id;}
 
 function updateBtn(id){
@@ -899,20 +927,27 @@ function updateBtn(id){
   var anyData=hasD(id);
   var hasPrevData=TD[id]&&TD[id].clients.length>1&&TD[id].clients.slice(0,-1).some(function(c){return totB(c)>0||(c.tickets>0);});
 
-  el.classList.remove('act','multi');
+  var isReserva=TD[id]&&TD[id].reserva&&!occupied&&!hasPrevData;
+  el.classList.remove('act','multi','reserva');
 
   if(occupied){
     el.classList.add('act');
   } else if(hasPrevData){
     el.classList.add('multi');
+  } else if(isReserva){
+    el.classList.add('reserva');
   }
 
   var nameEls=el.querySelectorAll('.tname,.tname-sm');
   nameEls.forEach(function(ne){ne.style.color=occupied?'#fff':'';});
   el.querySelectorAll('span[style*="font-weight:900"]').forEach(function(s){s.style.color=occupied?'#fff':'';});
 
-  var d=el.querySelector('.tdot'),inf=el.querySelector('.tinfo');
-  if(d)d.remove();if(inf)inf.remove();
+  var d=el.querySelector('.tdot'),inf=el.querySelector('.tinfo'),rd=el.querySelector('.reserva-dot');
+  if(d)d.remove();if(inf)inf.remove();if(rd)rd.remove();
+  if(isReserva&&!anyData){
+    var ri=document.createElement('span');ri.className='tinfo';ri.style.color='#1565C0';ri.textContent='RSV';el.appendChild(ri);
+    var rdot=document.createElement('span');rdot.className='reserva-dot';el.appendChild(rdot);
+  }
   if(anyData){
     var tot=TD[id].clients.reduce(function(s,c){return s+totB(c);},0);
     var cl=TD[id].clients.length;
@@ -1109,14 +1144,25 @@ function renderSheet(){
     '<div class="tdiv"></div>'+
     '<div class="titem"><div class="tval'+(over?' over':'')+'" id="tv-u">'+used+'</div><div class="tlbl">Soft Usciti</div></div>'+
     '</div>';
+  var t2=getTableData(CT);
+  var notaVal=t2.nota||'';
+  var isRsv=t2.reserva||false;
+  document.getElementById('sbody').innerHTML+=
+    '<div class="slbl" style="margin-top:16px">Note</div>'+
+    '<textarea class="nota-field" id="nota-field" placeholder="Osservazioni, VIP, compleanno..." onchange="saveNota(this.value)">'+notaVal+'</textarea>';
   document.getElementById('sfoot').innerHTML=
-    '<button class="bconf" onclick="closeSheet()">Conferma Tavolo</button>'+
+    '<button class="bconf" onclick="closeSheet()">Conferma</button>'+
+    '<button class="'+(isRsv?'bconf':'bdanger')+'" style="'+(isRsv?'background:#1565C0;color:#fff;border:none;':'border-color:#1565C0;color:#1565C0;')+'" onclick="togReserva()">'+
+      (isRsv?'🔵 Rimuovi RSV':'🔵 Riserva')+
+    '</button>'+
     '<button class="bdanger" onclick="askClear()">Pulisci</button>';
 }
 
 function chgPax(d){var c=getT(CT).clients[CC];c.pax=Math.max(0,(c.pax||0)+d);var el=document.getElementById('pax-val');if(el)el.textContent=c.pax;saveToFirebase();}
 function togExtra(id){var c=getT(CT).clients[CC];if(!c.extras)c.extras={};c.extras[id]=!c.extras[id];var btn=document.getElementById('ex-'+id);if(btn){btn.classList.toggle('on',!!c.extras[id]);btn.querySelector('.xtick').textContent=c.extras[id]?'✓ ':'';}saveToFirebase();}
 function swC(i){CC=i;renderSheet();}
+function saveNota(v){var t=getTableData(CT);t.nota=v;saveToFirebase();}
+function togReserva(){var t=getTableData(CT);t.reserva=!t.reserva;saveToFirebase();updateBtn(CT);renderSheet();}
 function addC(){var t=getT(CT),n=Math.max.apply(null,t.clients.map(function(c){return c.num;}))+1;t.clients.push(mkC(n));CC=t.clients.length-1;saveToFirebase();renderSheet();buildMap();}
 function askRemC(i){var t=getT(CT);showCov('Rimuovere cliente','Rimuovere il '+t.clients[i].num+'° cliente?',function(){t.clients.splice(i,1);if(CC>=t.clients.length)CC=t.clients.length-1;saveToFirebase();renderSheet();});}
 function updBSpirit(i,v){var c=getT(CT).clients[CC];c.bottles[i].spirit=v;c.bottles[i].brand='';saveToFirebase();refTot();renderSheet();}
