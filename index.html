@@ -351,12 +351,28 @@ select:focus,input:focus{border-color:var(--gold2);}
 
     <div class="sec-div"></div>
 
-    <!-- ══ TERRAZZINI ══ -->
-    <div class="sec-lbl">Terrazzini</div>
-    <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;">
-      <button class="t" id="tb-T1" onclick="openSheet('T1')"><span class="tname">T1</span></button>
-      <button class="t" id="tb-T3" onclick="openSheet('T3')"><span class="tname">T3</span></button>
-      <button class="t" id="tb-T4" onclick="openSheet('T4')"><span class="tname">T4</span></button>
+    <!-- ══ TERRAZZINI + LOUNGE 4 ══ -->
+    <div style="display:grid;grid-template-columns:3fr 1px 3fr;gap:8px;align-items:start;">
+      <!-- Terrazzini -->
+      <div>
+        <div class="sec-lbl" style="margin-bottom:4px;">Terrazzini</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;">
+          <button class="t" id="tb-T1" onclick="openSheet('T1')"><span class="tname">T1</span></button>
+          <button class="t" id="tb-T3" onclick="openSheet('T3')"><span class="tname">T3</span></button>
+          <button class="t" id="tb-T4" onclick="openSheet('T4')"><span class="tname">T4</span></button>
+        </div>
+      </div>
+      <!-- Divider -->
+      <div style="background:var(--border);width:1px;align-self:stretch;margin-top:18px;"></div>
+      <!-- Lounge 4 -->
+      <div>
+        <div class="sec-lbl" style="margin-bottom:4px;">Lounge 4</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;">
+          <button class="t" id="tb-81" onclick="openSheet('81')"><span class="tname">81</span></button>
+          <button class="t" id="tb-82" onclick="openSheet('82')"><span class="tname">82</span></button>
+          <button class="t" id="tb-83" onclick="openSheet('83')"><span class="tname">83</span></button>
+        </div>
+      </div>
     </div>
 
   </div><!-- page-map -->
@@ -633,7 +649,7 @@ var MAGNUM_BRANDS={'Belvedere Magnum 175cl':1};
 var SPIRITS=['Vodka','Gin','Whiskey','Rum','Tequila','Cognac','Champagne','Prosecco','Vino Bianco','Vino Rosso','Vino Rosé','Altro'];
 var SUPER={Vodka:1,Gin:1,Whiskey:1,Rum:1,Tequila:1,Cognac:1,Altro:1};
 var LABELS={G1G2:'G1 + G2', L1S:'L1 Sinistra', L1D:'L1 Destra', L2S:'L2 Sinistra', L2D:'L2 Destra'};
-var ALL_IDS=['D1','D2','D3','D4','D5','10','9','8','7','6','5','4','2','10A','9A','8A','7A','6A','5A','4A','1','J','G7','G6','G5','G1G2','L1S','L1D','L2S','L2D','E7','E8','E3','E4','51','52','53','54','55','56','T1','T3','T4'];
+var ALL_IDS=['D1','D2','D3','D4','D5','10','9','8','7','6','5','4','2','10A','9A','8A','7A','6A','5A','4A','1','J','G7','G6','G5','G1G2','L1S','L1D','L2S','L2D','E7','E8','E3','E4','51','52','53','54','55','56','T1','T3','T4','81','82','83'];
 
 var TD={},CT=null,CC=0,CCB=null;
 
