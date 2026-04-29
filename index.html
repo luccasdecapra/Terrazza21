@@ -131,6 +131,16 @@ select:focus,input:focus{border-color:var(--gold2);}
 .nota-field{width:100%;padding:10px;background:var(--bg3);border:2px solid var(--border2);border-radius:7px;color:var(--dark);font-family:-apple-system,sans-serif;font-size:14px;resize:none;outline:none;min-height:70px;}
 .nota-field:focus{border-color:var(--gold2);}
 
+/* PR CLIENTE */
+.t.pr-active{border-color:#7B1FA2;border-width:2.5px;}
+.pr-badge{position:absolute;top:2px;left:2px;font-size:6px;font-weight:900;background:#7B1FA2;color:#fff;border-radius:3px;padding:1px 3px;letter-spacing:.05em;}
+.pr-toggle-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:var(--rsm);border:2px solid var(--border);background:var(--bg2);cursor:pointer;margin-bottom:14px;transition:all .12s;}
+.pr-toggle-row.on{border-color:#7B1FA2;background:#F3E5F5;}
+.pr-toggle-lbl{flex:1;font-size:13px;font-weight:700;color:var(--dark);}
+.pr-toggle-row.on .pr-toggle-lbl{color:#7B1FA2;}
+.pr-check-box{width:26px;height:26px;border-radius:6px;border:2px solid var(--border2);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:all .12s;}
+.pr-toggle-row.on .pr-check-box{background:#7B1FA2;border-color:#7B1FA2;color:#fff;}
+
 /* CONNECTION INDICATOR */
 .conn-dot{width:7px;height:7px;border-radius:50%;background:#4caf50;display:inline-block;margin-right:4px;flex-shrink:0;}
 .conn-dot.off{background:#e53935;}
@@ -478,7 +488,7 @@ var BRANDS={
   ],
   Gin:[
     'Malfy Originale 70cl','Malfy Limone 70cl','Malfy Pompelmo 70cl','Malfy Arancia 70cl',
-    'Bombay Sapphire Premier Cru 70cl','Monkey 47 50cl','Mare 70cl','Hendrick\'s 70cl'
+    'Bombay Sapphire Premier Cru 70cl','Monkey 47 50cl','Mare 70cl','Hendrick\'s 70cl','Tanqueray Ten 70cl'
   ],
   Rum:[
     'La Hechicera','Bumbu Original','Bumbu XO','Bumbu Cream',
@@ -562,7 +572,7 @@ var PRICES={
   'Absolut Elyx 70cl':300,'Beluga 70cl':400,'Cîroc 70cl':350,'Crystal Head 70cl':350,
   'Imperial Collection Uovo Fabergé Gold':6000,'Imperial Collection Uovo Fabergé Blu':6000,'Imperial Collection Uovo Fabergé Marmo Rosa':6000,
   'Malfy Originale 70cl':300,'Malfy Limone 70cl':300,'Malfy Pompelmo 70cl':300,'Malfy Arancia 70cl':300,
-  'Bombay Sapphire Premier Cru 70cl':350,'Monkey 47 50cl':350,'Mare 70cl':400,'Hendrick\'s 70cl':400,
+  'Bombay Sapphire Premier Cru 70cl':350,'Monkey 47 50cl':350,'Mare 70cl':400,'Hendrick\'s 70cl':400,'Tanqueray Ten 70cl':400,
   'La Hechicera':300,'Bumbu Original':300,'Bumbu XO':350,'Bumbu Cream':300,
   'Diplomatico':350,'Don Papa Baroko':350,'Pampero Aniversario':350,'Santa Teresa':350,
   'Zacapa 23 Solera':400,'Zacapa XO':600,'Havana Club 15yo':700,'Havana Club Cohiba':1200,'Caroni 1996 23yo':5000,
@@ -690,7 +700,7 @@ function normalizeClients(raw){
     var bottles=c.bottles;
     if(bottles&&!Array.isArray(bottles)) bottles=Object.keys(bottles).sort(function(a,b){return a-b;}).map(function(k){return bottles[k];});
     if(!bottles||!bottles.length) bottles=[{spirit:'',brand:'',qty:1}];
-    return {num:c.num||1, bottles:bottles, softs:c.softs||{}, tickets:c.tickets||0, pax:c.pax||0, extras:c.extras||{}};
+    return {num:c.num||1, bottles:bottles, softs:c.softs||{}, tickets:c.tickets||0, pax:c.pax||0, extras:c.extras||{}, pr:c.pr||false};
   });
 }
 function normalizeTD(raw){
@@ -727,7 +737,7 @@ function saveToFirebase(){
   saveLocal();
   clearTimeout(_saveTimer);
   _saveTimer=setTimeout(function(){
-    db.set(TD).catch(function(e){console.warn('Firebase write error:',e);});
+    if(db) db.set(TD).catch(function(e){console.warn('Firebase write error:',e);});
   },400);
 }
 
@@ -868,7 +878,7 @@ function requestCloseSheet() {
 }
 
 function getT(id){return getTableData(id);}
-function mkC(n){return{num:n,bottles:[{spirit:'',brand:'',qty:1}],softs:{},tickets:0,pax:0,extras:{}};}
+function mkC(n){return{num:n,bottles:[{spirit:'',brand:'',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false};}
 function getTableData(id){if(!TD[id])TD[id]={clients:[mkC(1)]};if(!TD[id].nota)TD[id].nota='';if(typeof TD[id].reserva==='undefined')TD[id].reserva=false;return TD[id];}
 function totB(c){return c.bottles.reduce(function(s,b){return s+(b.spirit?(parseInt(b.qty)||0):0);},0);}
 function bottleSofts(b){
@@ -925,15 +935,22 @@ function updateBtn(id){
   var el=document.getElementById('tb-'+id);if(!el)return;
   var occupied=lastClientHasD(id);
   var anyData=hasD(id);
-  var hasPrevData=TD[id]&&TD[id].clients.length>1&&TD[id].clients.slice(0,-1).some(function(c){return totB(c)>0||(c.tickets>0);});
+  var hasPrevData=false;try{hasPrevData=TD[id]&&TD[id].clients&&TD[id].clients.length>1&&TD[id].clients.slice(0,-1).some(function(c){return totB(c)>0||(c.tickets>0);});}catch(e){}
 
   var isReserva=TD[id]&&TD[id].reserva&&!occupied&&!hasPrevData;
-  el.classList.remove('act','multi','reserva');
+  var lastC=null;try{lastC=TD[id]&&TD[id].clients&&TD[id].clients.length>0?TD[id].clients[TD[id].clients.length-1]:null;}catch(e){}
+  var isPRbtn=lastC&&lastC.pr&&(totB(lastC)>0||lastC.tickets>0);
+  el.classList.remove('act','multi','reserva','pr-active');
+  var prb=el.querySelector('.pr-badge');if(prb)prb.remove();
 
   if(occupied){
     el.classList.add('act');
   } else if(hasPrevData){
     el.classList.add('multi');
+  }
+  if(isPRbtn){
+    el.classList.add('pr-active');
+    var badge=document.createElement('span');badge.className='pr-badge';badge.textContent='PR';el.appendChild(badge);
   } else if(isReserva){
     el.classList.add('reserva');
   }
@@ -1075,6 +1092,7 @@ function closeSheet(){
 function renderSheet(){
   var t=getT(CT),c=t.clients[CC];
   var allowed=allowedSofts(c),used=usedS(c);
+  var isPR=c.pr||false;
   var tabs='';
   t.clients.forEach(function(cl,i){
     tabs+='<button class="ctab'+(i===CC?' on':'')+'" onclick="swC('+i+')">'+cl.num+'° cliente'+(t.clients.length>1&&i===CC?'<span class="ctx" onclick="event.stopPropagation();askRemC('+i+')">✕</span>':'')+'</button>';
@@ -1108,6 +1126,7 @@ function renderSheet(){
     {id:'sciropo',n:'Sciropo',    e:'🍯'},
     {id:'frutta', n:'P. Frutta',  e:'🍉', price:40},
     {id:'pizza',  n:'Pizza',      e:'🍕', price:25},
+    {id:'sandwich',n:'Club Sandwich',e:'🥪', price:27},
   ];
   var extrasHtml=EXTRAS.map(function(ex){
     var on=(c.extras||{})[ex.id];
@@ -1125,6 +1144,10 @@ function renderSheet(){
     '<div style="display:flex;align-items:center;gap:12px;background:var(--bg2);border:2px solid var(--border);border-radius:var(--rsm);padding:11px 14px;margin-bottom:14px;">'+
     '<span style="flex:1;font-size:13px;font-weight:700;color:var(--dark);">👥 Persone al tavolo</span>'+
     '<div class="qctrl" style="border:none;background:var(--bg3);padding:5px 9px;"><button onclick="chgPax(-1)">−</button><span id="pax-val" style="font-size:17px;font-weight:800;color:var(--dark);">'+pax+'</span><button onclick="chgPax(1)">+</button></div>'+
+    '</div>'+
+    '<div class="pr-toggle-row'+(isPR?' on':'')+'" onclick="togPR()" id="pr-toggle">'+
+    '<div class="pr-check-box">'+(isPR?'✓':'')+' </div>'+
+    '<span class="pr-toggle-lbl">🟣 Tav. PR — Offerta</span>'+
     '</div>'+
     '<div class="slbl">Bottiglie</div>'+bottles+
     '<button class="badd" onclick="addB()">+ aggiungi bottiglia</button>'+
@@ -1161,6 +1184,7 @@ function renderSheet(){
 function chgPax(d){var c=getT(CT).clients[CC];c.pax=Math.max(0,(c.pax||0)+d);var el=document.getElementById('pax-val');if(el)el.textContent=c.pax;saveToFirebase();}
 function togExtra(id){var c=getT(CT).clients[CC];if(!c.extras)c.extras={};c.extras[id]=!c.extras[id];var btn=document.getElementById('ex-'+id);if(btn){btn.classList.toggle('on',!!c.extras[id]);btn.querySelector('.xtick').textContent=c.extras[id]?'✓ ':'';}saveToFirebase();}
 function swC(i){CC=i;renderSheet();}
+function togPR(){var c=getT(CT).clients[CC];c.pr=!c.pr;saveToFirebase();updateBtn(CT);renderSheet();}
 function saveNota(v){var t=getTableData(CT);t.nota=v;saveToFirebase();}
 function togReserva(){var t=getTableData(CT);t.reserva=!t.reserva;saveToFirebase();updateBtn(CT);renderSheet();}
 function addC(){var t=getT(CT),n=Math.max.apply(null,t.clients.map(function(c){return c.num;}))+1;t.clients.push(mkC(n));CC=t.clients.length-1;saveToFirebase();renderSheet();buildMap();}
@@ -1196,7 +1220,7 @@ function totEur(c){
     return s+qty*p;
   },0);
   var ticketEur=(c.tickets&&c.tickets>0)?300:0;
-  var EXTRAS_PRICES={frutta:40,pizza:25};
+  var EXTRAS_PRICES={frutta:40,pizza:25,sandwich:27};
   var extrasEur=Object.keys(EXTRAS_PRICES).reduce(function(s,k){return s+((c.extras||{})[k]?EXTRAS_PRICES[k]:0);},0);
   var allowed=allowedSofts(c);
   var used=Object.values(c.softs||{}).reduce(function(s,v){return s+(v||0);},0);
@@ -1224,6 +1248,7 @@ function renderReport(){
     if(!TD[id]) return;
     var clients=normalizeClients(TD[id].clients);
     clients.forEach(function(c){
+      if(c.pr) return; // Offerta PR: escluso dai totali
       (c.bottles||[]).forEach(function(b){if(!b.spirit)return;var q=parseInt(b.qty)||0;totalG+=q;spC[b.spirit]=(spC[b.spirit]||0)+q;});
       Object.keys(c.softs||{}).forEach(function(sid){var v=c.softs[sid];totalS+=v;var sd=SOFTS.find(function(s){return s.id===sid;});if(sd&&v>0)sfC[sd.n]=(sfC[sd.n]||0)+v;});
       totalEur+=totEur(c);
@@ -1235,7 +1260,7 @@ function renderReport(){
     if(!t||!t.clients) return;
     var clients=normalizeClients(t.clients);
     var tot=clients.reduce(function(s,c){return s+totB(c);},0);
-    var tableEur=clients.reduce(function(s,c){return s+totEur(c);},0);
+    var tableEur=clients.reduce(function(s,c){return s+(c.pr?0:totEur(c));},0);
     var lbl=getLabel(id);
     rows+='<tr>'+
       '<td class="rmt">Tavolo '+lbl+'<span style="display:block;font-size:10px;font-weight:600;color:var(--muted);">'+tot+' bottigl'+(tot===1?'ia':'ie')+'</span></td>'+
@@ -1246,10 +1271,19 @@ function renderReport(){
     clients.forEach(function(c){
       var bots=(c.bottles||[]).filter(function(b){return b.spirit;});
       var sfts=Object.keys(c.softs||{}).filter(function(sid){return c.softs[sid]>0;}).map(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});return(c.softs[sid])+'x '+(d?d.n:sid);}).join(', ');
-      var extrasLabels=['shot','sale','limone','arancia','sciropo','frutta','pizza'];
-      var extrasNames={shot:'Shot',sale:'Sale',limone:'Limone',arancia:'Arancia',sciropo:'Sciropo',frutta:'P. Frutta (40€)',pizza:'Pizza (25€)'};
+      var extrasLabels=['shot','sale','limone','arancia','sciropo','frutta','pizza','sandwich'];
+      var extrasNames={shot:'Shot',sale:'Sale',limone:'Limone',arancia:'Arancia',sciropo:'Sciropo',frutta:'P. Frutta (40€)',pizza:'Pizza (25€)',sandwich:'Club Sandwich (27€)'};
       var activeExtras=extrasLabels.filter(function(k){return(c.extras||{})[k];}).map(function(k){return extrasNames[k];}).join(', ');
       if(!bots.length&&!(c.tickets>0)&&!sfts&&!activeExtras) return;
+      if(c.pr){
+        // Cliente PR: appare come Offerta, senza valore, non conta nelle bottiglie
+        var bsPR=bots.map(function(b){return b.qty+'x '+b.spirit+(b.brand?' — '+b.brand:'');}).join(', ');
+        rows+='<tr class="drow"><td colspan="2">'+
+          '<span style="background:#7B1FA2;color:#fff;font-size:9px;font-weight:800;padding:1px 6px;border-radius:3px;margin-right:5px;">OFFERTA</span>'+
+          c.num+'° cliente: '+(bsPR||'—')+
+        '</td></tr>';
+        return;
+      }
       var cEur=totEur(c);
       var bs=bots.map(function(b){
         var price=b.brand&&PRICES[b.brand]?' ('+PRICES[b.brand]+'€)':'';
@@ -1290,11 +1324,12 @@ function buildTxt(){
   // FIX 2: usa normalizeClients per sicurezza dopo reload Firebase
   active.forEach(function(id){
     normalizeClients(TD[id].clients).forEach(function(c){
+      if(c.pr) return; // Offerta: esclusa dai totali
       c.bottles.forEach(function(b){if(!b.spirit)return;var q=parseInt(b.qty)||0;totalG+=q;spC[b.spirit]=(spC[b.spirit]||0)+q;});
       Object.keys(c.softs).forEach(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});if(d&&c.softs[sid]>0)sfC[d.n]=(sfC[d.n]||0)+c.softs[sid];});
     });
   });
-  var totalEurTxt=0;active.forEach(function(id){normalizeClients(TD[id].clients).forEach(function(c){totalEurTxt+=totEur(c);});});
+  var totalEurTxt=0;active.forEach(function(id){normalizeClients(TD[id].clients).forEach(function(c){if(!c.pr)totalEurTxt+=totEur(c);});});
   var txt='🍾 *TERRAZZA DUOMO 21*\n📅 '+ds+' · '+ts+'\n\n*RIEPILOGO*\n• Bottiglie totali: *'+totalG+'*\n• Valore totale: *'+fmtEur(totalEurTxt)+'*\n\n*DETTAGLIO PER TAVOLO*\n';
   active.forEach(function(id){
     var clients=normalizeClients(TD[id].clients);
@@ -1305,6 +1340,7 @@ function buildTxt(){
     clients.forEach(function(c){
       var bots=c.bottles.filter(function(b){return b.spirit;});
       if(!bots.length&&!(c.tickets>0))return;
+      if(c.pr){txt+='  '+c.num+'° cliente [OFFERTA]: '+bots.map(function(b){return b.qty+'x '+b.spirit+(b.brand?' ('+b.brand+')':'');}).join(', ')+'\n';return;}
       if(bots.length)txt+='  '+c.num+'° cliente: '+bots.map(function(b){return b.qty+'x '+b.spirit+(b.brand?' ('+b.brand+')':'');}).join(', ')+'\n';
       var sf=Object.keys(c.softs).filter(function(sid){return c.softs[sid]>0;}).map(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});return c.softs[sid]+'x '+(d?d.n:sid);});
       if(sf.length)txt+='    Soft: '+sf.join(', ')+'\n';
