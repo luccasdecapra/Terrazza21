@@ -13,8 +13,8 @@
 
 <!-- v2.6 — localStorage backup: dati istantanei al reload, Firebase come sync remoto -->
 <!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js" defer></script>
 <style>
 :root {
   --bg: #f4f1ec;
@@ -769,23 +769,53 @@ function initFirebase() {
   });
 
   // 2) Poi sincronizza con Firebase (può arrivare dopo qualche secondo)
+  // Flag: true dopo il primo caricamento Firebase
+  var _firebaseFirstLoad = true;
+
   db.on('value', function(snap){
     var remote = snap.val();
-    // Se Firebase è vuoto ma abbiamo dati locali, rispettiamo il locale
-    // (es: firebase azzerato ma chiusura non ancora fatta dall'utente)
+
     if(remote === null){
-      // Firebase vuoto — non sovrascrivere se ci sono dati locali validi
-      var localHasData = Object.keys(TD).some(function(k){ return hasD(k); });
-      if(localHasData){
-        // Ripristina Firebase dai dati locali
-        db.set(TD).catch(function(e){console.warn('Firebase restore error:',e);});
+      if(_firebaseFirstLoad){
+        // Primo caricamento: Firebase vuoto ma potrebbe essere connessione lenta
+        // Aspetta 2 secondi — se rimane null, considera chiusura fatta da altro device
+        _firebaseFirstLoad = false;
+        setTimeout(function(){
+          db.once('value', function(snap2){
+            if(snap2.val() === null){
+              // Confermato: Firebase davvero vuoto — chiusura da altro dispositivo
+              // Salva snapshot per rapporto post-chiusura
+              if(Object.keys(TD).some(function(k){return hasD(k);})){
+                try { localStorage.setItem('td21_last_report', JSON.stringify(JSON.parse(JSON.stringify(TD)))); } catch(e){}
+              }
+              TD = {};
+              clearLocal();
+              buildMap();
+              if(document.getElementById('page-report').classList.contains('on')) renderReport();
+              // Mostra notifica
+              if(Object.keys(TD).length === 0){
+                showCov('Chiusura completata','Un altro dispositivo ha effettuato la chiusura. Tutte le mesas sono state azzerate.',function(){},true);
+              }
+            }
+          });
+        }, 2000);
         return;
       }
+      // Firebase svuotato da un altro dispositivo (chiusura remota)
+      if(Object.keys(TD).some(function(k){return hasD(k);})){
+        try { localStorage.setItem('td21_last_report', JSON.stringify(JSON.parse(JSON.stringify(TD)))); } catch(e){}
+        showCov('Chiusura completata','Un altro dispositivo ha effettuato la chiusura. Tutte le mesas sono state azzerate.',function(){},true);
+      }
       TD = {};
-    } else {
-      TD = normalizeTD(remote);
-      saveLocal(); // aggiorna cache locale con dati remoti
+      clearLocal();
+      buildMap();
+      if(document.getElementById('page-report').classList.contains('on')) renderReport();
+      return;
     }
+
+    _firebaseFirstLoad = false;
+    TD = normalizeTD(remote);
+    saveLocal();
     buildMap();
     if(CT && document.getElementById('sheet').classList.contains('on')){
       if(!TD[CT] || CC >= TD[CT].clients.length) CC = 0;
@@ -1130,6 +1160,7 @@ function askClearAll(){
       try { localStorage.setItem('td21_last_report', JSON.stringify(JSON.parse(JSON.stringify(TD)))); } catch(e){}
       TD={};CC=0;
       clearLocal();
+      // Scrive marker di chiusura — tutti i dispositivi ricevono null e si azzerano
       if(db) db.set(null).catch(function(e){console.warn('Firebase clear error:',e);});
       buildMap();
       document.getElementById('chiusura-count').textContent='0';
@@ -1940,7 +1971,18 @@ window.addEventListener('DOMContentLoaded',function(){
   initLogin();
   var hd=document.getElementById('hDate');
   if(hd) hd.textContent='Connessione...';
-  initFirebase();
+  // Aspetta che Firebase SDK sia caricato prima di inizializzare
+  function tryInitFirebase(retries) {
+    if(typeof firebase !== 'undefined') {
+      initFirebase();
+    } else if(retries > 0) {
+      setTimeout(function(){ tryInitFirebase(retries-1); }, 300);
+    } else {
+      if(hd) hd.textContent='Errore Firebase';
+      console.error('Firebase SDK non caricato');
+    }
+  }
+  tryInitFirebase(20);
 });
 </script>
   <!-- PWA INSTALL BANNER -->
