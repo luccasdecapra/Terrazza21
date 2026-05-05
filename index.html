@@ -757,6 +757,12 @@ function initFirebase() {
   db = firebase.database().ref('tavoli');
   dbStorico = firebase.database().ref('storico');
 
+  // Quando Firebase è pronto, carica storico automaticamente
+  dbStorico.once('value', function() {
+    console.log('Firebase storico pronto — carico lista turni');
+    loadStorico();
+  });
+
   // 1) Carica subito da localStorage — istantaneo, nessuna attesa di rete
   loadLocal();
 
@@ -911,8 +917,9 @@ function saveStorico(snapshot) {
 function loadStorico() {
   var el = document.getElementById('storicoList');
   if (!el) return;
+  if (!dbStorico) { setTimeout(loadStorico, 800); return; }
   el.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px;">Caricamento...</div>';
-  dbStorico.orderByChild('ts').orderByChild('ts').once('value', function(snap) {
+  dbStorico.orderByChild('ts').once('value', function(snap) {
     var items = [];
     snap.forEach(function(child) { items.unshift(child.val()); });
     if (!items.length) {
