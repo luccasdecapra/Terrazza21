@@ -875,31 +875,38 @@ function saveStorico(snapshot) {
   if(!dbStorico){ console.warn('dbStorico not ready'); return; }
   dbStorico.child(String(ts)).set(entry).catch(function(e) { console.warn('Storico save error:', e); });
 
-  dbStorico.orderByChild('ts').limitToFirst(100).once('value', function(snap) {
-    var all = [];
-    snap.forEach(function(child) { all.push(child.key); });
-    if (all.length > 7) {
-      all.slice(0, all.length - 7).forEach(function(key) { dbStorico.child(key).remove(); });
-    }
-  });
+  // Storico illimitato — nessuna cancellazione automatica
 }
 
 function loadStorico() {
   var el = document.getElementById('storicoList');
   if (!el) return;
   el.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px;">Caricamento...</div>';
-  dbStorico.orderByChild('ts').limitToLast(7).once('value', function(snap) {
+  dbStorico.orderByChild('ts').orderByChild('ts').once('value', function(snap) {
     var items = [];
     snap.forEach(function(child) { items.unshift(child.val()); });
     if (!items.length) {
       el.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px;">Nessun turno salvato.</div>';
       return;
     }
+    // Deduplica per ts (evita duplicati)
+    var seen = {};
+    items = items.filter(function(it){ if(seen[it.ts]) return false; seen[it.ts]=1; return true; });
     el.innerHTML = items.map(function(item) {
+      var itemVal = 0;
+      try {
+        if(item.data){
+          Object.keys(item.data).forEach(function(id){
+            var t=item.data[id]; if(!t||!t.clients) return;
+            normalizeClients(t.clients).forEach(function(c){ if(!c.pr) itemVal+=totEur(c); });
+          });
+        }
+      } catch(e){}
+      var valStr = itemVal > 0 ? ' · <b style="color:var(--gold);">' + fmtEur(itemVal) + '</b>' : '';
       return '<div class="storico-item" onclick="openStoricoModal(' + item.ts + ')">' +
         '<div class="storico-left">' +
           '<div class="storico-date">' + item.date + ' · ' + item.time + '</div>' +
-          '<div class="storico-sub">' + item.tavoli + ' tavol' + (item.tavoli === 1 ? 'o' : 'i') + ' attiv' + (item.tavoli === 1 ? 'o' : 'i') + '</div>' +
+          '<div class="storico-sub">' + item.tavoli + ' tavol' + (item.tavoli === 1 ? 'o' : 'i') + valStr + '</div>' +
         '</div>' +
         '<div class="storico-pills"><span class="storico-pill">🍾 ' + item.bottiglie + '</span></div>' +
         '<span style="color:var(--muted);font-size:16px;">›</span>' +
@@ -1530,12 +1537,15 @@ function exportPDF(){
     '</body></html>';
 
   // Open in new window and trigger print/save as PDF
-  var win = window.open('', '_blank');
-  if(!win){ alert('Abilita i popup per esportare il PDF'); return; }
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(function(){ win.print(); }, 500);
+  var blob2 = new Blob([html], {type: 'text/html; charset=utf-8'});
+  var blobUrl2 = URL.createObjectURL(blob2);
+  var a2 = document.createElement('a');
+  a2.href = blobUrl2;
+  a2.target = '_blank';
+  a2.rel = 'noopener noreferrer';
+  document.body.appendChild(a2);
+  a2.click();
+  setTimeout(function(){ document.body.removeChild(a2); URL.revokeObjectURL(blobUrl2); }, 5000);
 }
 
 // FIX 3: fallback per browser senza clipboard API (non-HTTPS o vecchi browser)
@@ -1772,15 +1782,19 @@ function openPdfSelector(){
       return;
     }
 
+    // Deduplica
+    var seenPdf = {};
+    items = items.filter(function(it){ if(seenPdf[it.ts]) return false; seenPdf[it.ts]=1; return true; });
     list.innerHTML = items.map(function(item){
-      // Calcola valore totale del turno
       var val = 0;
-      if(item.data){
-        Object.keys(item.data).forEach(function(id){
-          var t = item.data[id]; if(!t||!t.clients) return;
-          normalizeClients(t.clients).forEach(function(c){ if(!c.pr) val += totEur(c); });
-        });
-      }
+      try {
+        if(item.data){
+          Object.keys(item.data).forEach(function(id){
+            var t = item.data[id]; if(!t||!t.clients) return;
+            normalizeClients(t.clients).forEach(function(c){ if(!c.pr) val += totEur(c); });
+          });
+        }
+      } catch(e){}
       var valStr = val > 0 ? fmtEur(val) : '—';
       return '<div class="pdf-item" onclick="generatePDF(' + item.ts + ')">' +
         '<div class="pdf-item-left">' +
@@ -1908,12 +1922,16 @@ function generatePDF(ts){
       '<div class="footer">Terrazza Duomo 21 · Generato il ' + new Date().toLocaleDateString('it-IT') + '</div>'+
       '</body></html>';
 
-    var win = window.open('', '_blank');
-    if(!win){ alert('Abilita i popup per esportare il PDF'); return; }
-    win.document.write(html);
-    win.document.close();
-    win.focus();
-    setTimeout(function(){ win.print(); }, 600);
+    // Blob URL — funziona su Safari senza popup
+    var blob = new Blob([html], {type: 'text/html; charset=utf-8'});
+    var blobUrl = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = blobUrl;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(blobUrl); }, 5000);
   });
 }
 
