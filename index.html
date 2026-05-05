@@ -1631,6 +1631,7 @@ document.getElementById('cok').onclick=function(){if(CCB)CCB();closeCov();};
 // Senha = DDMM da data di riferimento
 // Sessione valida: dalle 22:00 fino alle 05:00 del giorno dopo
 // ══════════════════════════════════════════════════════════
+var APP_VERSION = '2.1.0'; // versione app — deve corrispondere a quella nel SW
 var _loginEntered = '';
 var _sessionKey = 'td21_session_v2';
 
@@ -1694,19 +1695,39 @@ function isLoggedIn() {
 function markLoggedIn() {
   try {
     // Pulisce sessioni vecchie
-    for(var i = 0; i < localStorage.length; i++){
+    for(var i = localStorage.length - 1; i >= 0; i--){
       var k = localStorage.key(i);
       if(k && k.indexOf(_sessionKey) === 0 && k !== getSessionKey()){
-        localStorage.removeItem(k); i--;
+        localStorage.removeItem(k);
       }
     }
     localStorage.setItem(getSessionKey(), '1');
+    localStorage.setItem('td21_app_version', APP_VERSION);
+  } catch(e) {}
+}
+
+// Se l'app è stata aggiornata, cancella sessioni vecchie e richiedi nuovo login
+function checkVersionAndSession() {
+  try {
+    var savedVersion = localStorage.getItem('td21_app_version');
+    if(savedVersion !== APP_VERSION) {
+      // Nuova versione — cancella tutte le sessioni precedenti
+      for(var i = localStorage.length - 1; i >= 0; i--){
+        var k = localStorage.key(i);
+        if(k && k.indexOf(_sessionKey) === 0){
+          localStorage.removeItem(k);
+        }
+      }
+    }
   } catch(e) {}
 }
 
 function initLogin() {
   var screen = document.getElementById('login-screen');
   if (!screen) return;
+
+  // Controlla se l'app è stata aggiornata — se sì, richiede nuovo login
+  checkVersionAndSession();
 
   if (isLoggedIn()) {
     screen.classList.add('hidden');
@@ -2044,16 +2065,59 @@ window.addEventListener('DOMContentLoaded',function(){
 
 // ── PWA: SERVICE WORKER (cache offline) ────────────────────
 if('serviceWorker' in navigator){
+  // VERSION: incrementa questo numero per forzare aggiornamento su tutti i dispositivi
+  var APP_VERSION = '2.1.0'; // ← incrementa per forzare aggiornamento
   var swCode = `
-const CACHE = 'td21-v1';
-const URLS = [location.href];
-self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(['/']))); self.skipWaiting(); });
-self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k))))); });
-self.addEventListener('fetch', e => { e.respondWith(fetch(e.request).catch(() => caches.match(e.request))); });
+const CACHE_NAME = 'td21-v${APP_VERSION}';
+// Alla installazione: skipWaiting forza attivazione immediata
+self.addEventListener('install', e => {
+  self.skipWaiting();
+});
+// Alla attivazione: cancella tutte le cache vecchie e prendi controllo
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
+// Fetch: sempre dalla rete, mai dalla cache — garantisce versione aggiornata
+self.addEventListener('fetch', e => {
+  e.respondWith(
+    fetch(e.request).catch(() => new Response('Offline', {status: 503}))
+  );
+});
+// Ascolta messaggi dal client
+self.addEventListener('message', e => {
+  if(e.data === 'SKIP_WAITING') self.skipWaiting();
+});
 `;
+  // Inject version into SW code
+  swCode = swCode.replace('${APP_VERSION}', APP_VERSION);
   var swBlob = new Blob([swCode], {type:'text/javascript'});
   var swUrl = URL.createObjectURL(swBlob);
-  navigator.serviceWorker.register(swUrl).catch(function(){});
+  navigator.serviceWorker.register(swUrl).then(function(reg){
+    // Controlla aggiornamenti ogni 30 secondi
+    setInterval(function(){ reg.update(); }, 30000);
+    // Quando c'è un nuovo SW in attesa, forza reload
+    reg.addEventListener('updatefound', function(){
+      var newSW = reg.installing;
+      newSW.addEventListener('statechange', function(){
+        if(newSW.state === 'installed' && navigator.serviceWorker.controller){
+          // Nuovo aggiornamento disponibile — ricarica automaticamente
+          newSW.postMessage('SKIP_WAITING');
+        }
+      });
+    });
+  }).catch(function(){});
+  // Quando il SW prende controllo, ricarica la pagina per applicare aggiornamenti
+  var refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function(){
+    if(!refreshing){
+      refreshing = true;
+      window.location.reload();
+    }
+  });
 }
 
 // ── PWA: INSTALL PROMPT ────────────────────────────────────
