@@ -147,6 +147,23 @@ select:focus,input:focus{border-color:var(--gold2);}
 .login-btn.empty{visibility:hidden;}
 .login-date-hint{font-size:10px;color:#4a3e2e;margin-top:24px;text-align:center;line-height:1.6;}
 
+/* PDF SELECTOR MODAL */
+.pdf-ov{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:400;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
+.pdf-ov.on{opacity:1;pointer-events:all;}
+.pdf-box{background:var(--bg);border-radius:20px 20px 0 0;border-top:2px solid var(--border2);width:100%;max-width:430px;max-height:88vh;display:flex;flex-direction:column;padding-bottom:max(16px,env(safe-area-inset-bottom,16px));}
+.pdf-hdr{padding:12px 18px 10px;border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.pdf-title{font-size:16px;font-weight:700;color:var(--dark);}
+.pdf-close{width:30px;height:30px;border-radius:50%;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;font-weight:700;color:var(--mid);}
+.pdf-body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 16px;}
+.pdf-item{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--rsm);padding:13px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;transition:all .12s;}
+.pdf-item:active{background:var(--bg3);}
+.pdf-item-left{flex:1;}
+.pdf-item-date{font-size:13px;font-weight:700;color:var(--dark);}
+.pdf-item-sub{font-size:11px;color:var(--muted);margin-top:3px;}
+.pdf-item-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}
+.pdf-item-val{font-size:13px;font-weight:800;color:var(--gold);}
+.pdf-item-pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:12px;background:var(--gold-bg);color:var(--gold);border:1px solid var(--gold2);}
+
 /* PR CLIENTE */
 .t.pr-active{border-color:#7B1FA2;border-width:2.5px;}
 .pr-badge{position:absolute;top:2px;left:2px;font-size:6px;font-weight:900;background:#7B1FA2;color:#fff;border-radius:3px;padding:1px 3px;letter-spacing:.05em;}
@@ -448,6 +465,10 @@ select:focus,input:focus{border-color:var(--gold2);}
         Azzera tutti i tavoli
       </button>
       <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px;">⚠️ L'operazione è irreversibile</p>
+      <button onclick="openPdfSelector()" style="width:100%;margin-top:10px;padding:13px;background:none;border:2px solid var(--gold2);border-radius:10px;font-family:-apple-system,sans-serif;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9,15 12,18 15,15"/></svg>
+        Salva PDF rapporto
+      </button>
 
       <div style="margin-top:24px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
@@ -492,6 +513,19 @@ select:focus,input:focus{border-color:var(--gold2);}
       <button class="pin-btn cancel" data-k="cancel">Annulla</button>
       <button class="pin-btn" data-k="0">0</button>
       <button class="pin-btn del" data-k="del">⌫</button>
+    </div>
+  </div>
+</div>
+
+<!-- PDF SELECTOR MODAL -->
+<div class="pdf-ov" id="pdfOv" onclick="closePdfSelector()">
+  <div class="pdf-box" onclick="event.stopPropagation()">
+    <div class="pdf-hdr">
+      <div class="pdf-title">📄 Scegli rapporto da salvare</div>
+      <div class="pdf-close" onclick="closePdfSelector()">✕</div>
+    </div>
+    <div class="pdf-body" id="pdfList">
+      <div style="font-size:12px;color:var(--muted);text-align:center;padding:20px;">Caricamento...</div>
     </div>
   </div>
 </div>
@@ -1716,6 +1750,171 @@ function showTodayPin() {
     console.log('✅ Orario operativo · Milano ' + timeStr + ' — PIN: ' + pin);
   }
   return pin;
+}
+
+
+// ── PDF SELECTOR ──────────────────────────────────────────
+function openPdfSelector(){
+  var ov = document.getElementById('pdfOv');
+  var list = document.getElementById('pdfList');
+  if(!ov||!list) return;
+  list.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px;">Caricamento...</div>';
+  ov.classList.add('on');
+
+  if(!dbStorico){ list.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px;">Connessione in corso...</div>'; return; }
+
+  dbStorico.orderByChild('ts').once('value', function(snap){
+    var items = [];
+    snap.forEach(function(child){ var v=child.val(); if(v&&v.ts) items.unshift(v); });
+
+    if(!items.length){
+      list.innerHTML = '<div style="font-size:13px;color:var(--muted);text-align:center;padding:30px;">Nessun turno salvato.</div>';
+      return;
+    }
+
+    list.innerHTML = items.map(function(item){
+      // Calcola valore totale del turno
+      var val = 0;
+      if(item.data){
+        Object.keys(item.data).forEach(function(id){
+          var t = item.data[id]; if(!t||!t.clients) return;
+          normalizeClients(t.clients).forEach(function(c){ if(!c.pr) val += totEur(c); });
+        });
+      }
+      var valStr = val > 0 ? fmtEur(val) : '—';
+      return '<div class="pdf-item" onclick="generatePDF(' + item.ts + ')">' +
+        '<div class="pdf-item-left">' +
+          '<div class="pdf-item-date">' + (item.date||'—') + ' · ' + (item.time||'—') + '</div>' +
+          '<div class="pdf-item-sub">' + (item.tavoli||0) + ' tavol' + (item.tavoli===1?'o':'i') + ' · ' + (item.bottiglie||0) + ' bottigl' + (item.bottiglie===1?'ia':'ie') + '</div>' +
+        '</div>' +
+        '<div class="pdf-item-right">' +
+          '<div class="pdf-item-val">' + valStr + '</div>' +
+          '<div class="pdf-item-pill">🍾 ' + (item.bottiglie||0) + '</div>' +
+        '</div>' +
+        '<span style="color:var(--muted);font-size:18px;margin-left:4px;">›</span>' +
+      '</div>';
+    }).join('');
+  }, function(err){
+    list.innerHTML = '<div style="font-size:12px;color:var(--red);text-align:center;padding:20px;">Errore: ' + (err.message||'connessione') + '</div>';
+  });
+}
+
+function closePdfSelector(){
+  var ov = document.getElementById('pdfOv');
+  if(ov) ov.classList.remove('on');
+}
+
+function generatePDF(ts){
+  closePdfSelector();
+  if(!dbStorico) return;
+  dbStorico.child(String(ts)).once('value', function(snap){
+    var item = snap.val();
+    if(!item) return;
+
+    var storedTD = item.data || {};
+    var active = Object.keys(storedTD).filter(function(k){
+      return storedTD[k] && storedTD[k].clients && normalizeClients(storedTD[k].clients).some(function(c){ return totB(c)>0||c.tickets>0; });
+    });
+
+    // Compute totals
+    var totalG=0, totalS=0, totalVal=0, spC={}, sfC={};
+    active.forEach(function(id){
+      normalizeClients(storedTD[id].clients).forEach(function(c){
+        if(c.pr) return;
+        (c.bottles||[]).forEach(function(b){ if(!b.spirit) return; var q=parseInt(b.qty)||0; totalG+=q; spC[b.spirit]=(spC[b.spirit]||0)+q; });
+        Object.keys(c.softs||{}).forEach(function(sid){ var v=c.softs[sid]; totalS+=v; var sd=SOFTS.find(function(s){return s.id===sid;}); if(sd&&v>0) sfC[sd.n]=(sfC[sd.n]||0)+v; });
+        totalVal += totEur(c);
+      });
+    });
+
+    // Build table rows
+    var rows = '';
+    active.forEach(function(id){
+      var clients = normalizeClients(storedTD[id].clients);
+      var tot = clients.reduce(function(s,c){return s+totB(c);},0);
+      var tableVal = clients.reduce(function(s,c){return s+(c.pr?0:totEur(c));},0);
+      rows += '<tr><td class="rmt">Tavolo ' + getLabel(id) + '</td><td class="rnum">' + (tableVal>0?fmtEur(tableVal):'—') + '</td><td class="rnum">' + (tot>0?tot:'—') + '</td></tr>';
+      clients.forEach(function(c){
+        var bots = (c.bottles||[]).filter(function(b){return b.spirit;});
+        if(!bots.length&&!c.tickets) return;
+        if(c.pr){
+          rows += '<tr class="drow"><td colspan="3"><span class="pr-badge-print">OFFERTA</span>' + c.num + '° cliente: ' + bots.map(function(b){return b.qty+'x '+b.spirit+(b.brand?' — '+b.brand:'');}).join(', ') + '</td></tr>';
+          return;
+        }
+        var cVal = totEur(c);
+        var bs = bots.map(function(b){ var p=b.brand&&PRICES[b.brand]?' ('+PRICES[b.brand]+'€)':''; return b.qty+'x '+b.spirit+(b.brand?' — '+b.brand:'')+p; }).join(', ');
+        var tk = c.tickets>0?' · 🎫 '+c.tickets+' ticket':'';
+        var pax = c.pax>0?' · 👥 '+c.pax:'';
+        rows += '<tr class="drow"><td colspan="3">' + c.num + '° cliente' + (cVal>0?' · <b>'+fmtEur(cVal)+'</b>':'') + ': ' + (bs||'—') + tk + pax + '</td></tr>';
+      });
+    });
+
+    // Pills helper
+    function pills(obj){
+      return Object.keys(obj).sort(function(a,b){return obj[b]-obj[a];}).map(function(k){
+        return '<span class="pill">' + k + ' <b>' + obj[k] + 'x</b></span>';
+      }).join('');
+    }
+
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+      '<title>Rapporto ' + (item.date||'') + ' · Terrazza 21</title>'+
+      '<style>'+
+      'body{font-family:-apple-system,Helvetica,Arial,sans-serif;margin:0;padding:24px;color:#1a1510;max-width:620px;margin:0 auto;}'+
+      '@media print{body{padding:10px;}}'+
+      '.header{background:#1a1510;color:#fff;padding:20px 24px;border-radius:10px;margin-bottom:20px;}'+
+      '.logo-title{font-size:22px;font-weight:300;font-style:italic;color:#fff;margin:0 0 2px;}'+
+      '.logo-title b{font-weight:800;font-style:normal;color:#c9a940;}'+
+      '.logo-sub{font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:#6a5c46;margin-bottom:10px;}'+
+      '.header-date{font-size:13px;color:#a89070;margin-top:6px;}'+
+      '.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px;}'+
+      '.kpi{border:1.5px solid #cec8be;border-radius:8px;padding:14px;text-align:center;}'+
+      '.kpi.gold{border-color:#c9a940;background:#fdf6e3;}'+
+      '.kval{font-size:26px;font-weight:800;color:#9a7820;line-height:1;}'+
+      '.kval.big{font-size:20px;}'+
+      '.klbl{font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#8c7d6a;margin-top:4px;}'+
+      '.sec{margin-bottom:18px;}'+
+      '.sec-lbl{font-size:9px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#9a7820;margin-bottom:8px;}'+
+      'table{width:100%;border-collapse:collapse;font-size:12px;}'+
+      'th{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8c7d6a;padding:6px 8px;border-bottom:2px solid #cec8be;text-align:left;}'+
+      'th.rnum{text-align:right;}'+
+      'td{padding:9px 8px;border-bottom:1px solid #cec8be;vertical-align:top;}'+
+      'td.rnum{text-align:right;font-weight:800;color:#9a7820;}'+
+      '.rmt{font-weight:800;font-size:13px;}'+
+      '.drow td{background:#f0ede8;font-size:10px;color:#5c5244;padding:5px 8px 5px 18px;}'+
+      '.pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}'+
+      '.pill{padding:5px 11px;border:1.5px solid #cec8be;border-radius:20px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;}'+
+      '.pill b{color:#9a7820;}'+
+      '.pr-badge-print{background:#7B1FA2;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;margin-right:4px;}'+
+      '.footer{margin-top:30px;padding-top:14px;border-top:1px solid #cec8be;font-size:10px;color:#cec8be;text-align:center;}'+
+      '.print-btn{position:fixed;top:16px;right:16px;padding:10px 20px;background:#1a1510;color:#c9a940;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;}'+
+      '@media print{.print-btn{display:none;}}'+
+      '</style></head><body>'+
+      '<button class="print-btn" onclick="window.print()">🖨️ Stampa / Salva PDF</button>'+
+      '<div class="header">'+
+        '<div class="logo-title">Terrazza <b>21</b></div>'+
+        '<div class="logo-sub">Lounge Bar · Milano</div>'+
+        '<div class="header-date">📅 ' + (item.date||'') + ' · ' + (item.time||'') + '</div>'+
+      '</div>'+
+      '<div class="kpis">'+
+        '<div class="kpi gold"><div class="kval big">' + fmtEur(totalVal) + '</div><div class="klbl">Valore Totale</div></div>'+
+        '<div class="kpi"><div class="kval">' + totalG + '</div><div class="klbl">Bottiglie</div></div>'+
+        '<div class="kpi"><div class="kval">' + active.length + '</div><div class="klbl">Tavoli</div></div>'+
+      '</div>'+
+      '<div class="sec"><div class="sec-lbl">Dettaglio per tavolo</div>'+
+        '<table><thead><tr><th>Tavolo</th><th class="rnum">Valore</th><th class="rnum">Bottiglie</th></tr></thead>'+
+        '<tbody>' + rows + '</tbody></table></div>'+
+      '<div class="sec"><div class="sec-lbl">Bottiglie vendute</div><div class="pills">' + (pills(spC)||'<span style="font-size:12px;color:#8c7d6a;">—</span>') + '</div></div>'+
+      '<div class="sec"><div class="sec-lbl">Soft drinks</div><div class="pills">' + (pills(sfC)||'<span style="font-size:12px;color:#8c7d6a;">—</span>') + '</div></div>'+
+      '<div class="footer">Terrazza Duomo 21 · Generato il ' + new Date().toLocaleDateString('it-IT') + '</div>'+
+      '</body></html>';
+
+    var win = window.open('', '_blank');
+    if(!win){ alert('Abilita i popup per esportare il PDF'); return; }
+    win.document.write(html);
+    win.document.close();
+    win.focus();
+    setTimeout(function(){ win.print(); }, 600);
+  });
 }
 
 window.addEventListener('DOMContentLoaded',function(){
