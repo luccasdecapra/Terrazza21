@@ -147,6 +147,55 @@ select:focus,input:focus{border-color:var(--gold2);}
 .login-btn.empty{visibility:hidden;}
 .login-date-hint{font-size:10px;color:#4a3e2e;margin-top:24px;text-align:center;line-height:1.6;}
 
+/* ANALYTICS */
+.an-section{background:var(--bg2);border:2px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;}
+.an-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.an-tab{padding:7px 12px;border-radius:20px;border:2px solid var(--border);background:var(--bg);font-size:10px;font-weight:700;color:var(--mid);cursor:pointer;white-space:nowrap;transition:all .12s;}
+.an-tab.on{background:var(--dark);color:var(--gold2);border-color:var(--dark);}
+.an-date-row{display:flex;gap:8px;margin-bottom:12px;align-items:center;}
+.an-date-row input[type=date]{flex:1;padding:8px 10px;background:var(--bg3);border:2px solid var(--border2);border-radius:7px;color:var(--dark);font-family:-apple-system,sans-serif;font-size:13px;font-weight:600;outline:none;-webkit-appearance:none;}
+.an-date-row input[type=date]:focus{border-color:var(--gold2);}
+.an-kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.an-kpi{background:var(--bg);border:2px solid var(--border);border-radius:var(--rsm);padding:10px;text-align:center;}
+.an-kpi.gold{border-color:var(--gold2);background:var(--gold-bg);}
+.an-kval{font-size:22px;font-weight:800;color:var(--gold);line-height:1;}
+.an-kval.sm{font-size:16px;}
+.an-klbl{font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:3px;}
+.an-delta{font-size:10px;font-weight:800;margin-top:5px;padding:2px 7px;border-radius:10px;display:inline-block;}
+.an-delta.up{background:#E8F5E9;color:#2E7D32;}
+.an-delta.dn{background:#FFEBEE;color:#C62828;}
+.an-delta.eq{background:var(--bg3);color:var(--muted);}
+.an-comp{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.an-period{background:var(--bg);border:2px solid var(--border);border-radius:var(--rsm);padding:10px;}
+.an-period-lbl{font-size:8px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;}
+.an-period-val{font-size:20px;font-weight:800;color:var(--dark);}
+.an-period-sub{font-size:10px;color:var(--muted);margin-top:2px;}
+.an-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.an-bar-lbl{font-size:10px;font-weight:700;color:var(--dark);min-width:80px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.an-bar-wrap{flex:1;background:var(--bg3);border-radius:4px;height:8px;overflow:hidden;}
+.an-bar-fill{height:8px;border-radius:4px;background:var(--gold2);transition:width .5s;}
+.an-bar-fill.blue{background:#1565C0;}
+.an-bar-fill.green{background:#2E7D32;}
+.an-bar-fill.red{background:#C62828;}
+.an-bar-num{font-size:10px;font-weight:800;color:var(--gold);min-width:40px;text-align:right;flex-shrink:0;}
+.an-empty{text-align:center;padding:24px 10px;color:var(--muted);font-size:12px;line-height:1.6;}
+.an-sec{margin-bottom:16px;}
+.an-sec-lbl{font-size:9px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;}
+.an-month-row{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--border);}
+.an-month-row:last-child{border-bottom:none;}
+.an-month-name{font-size:12px;font-weight:700;color:var(--dark);min-width:60px;}
+.an-month-bar{flex:1;background:var(--bg3);border-radius:4px;height:10px;overflow:hidden;}
+.an-month-fill{height:10px;border-radius:4px;background:var(--gold2);}
+.an-month-val{font-size:11px;font-weight:800;color:var(--gold);min-width:55px;text-align:right;}
+.an-month-sub{font-size:9px;color:var(--muted);min-width:30px;text-align:right;}
+.an-we-row{background:var(--bg);border:1.5px solid var(--border);border-radius:var(--rsm);padding:10px 12px;margin-bottom:7px;display:flex;align-items:center;gap:10px;}
+.an-we-rank{font-size:16px;min-width:24px;}
+.an-we-info{flex:1;}
+.an-we-date{font-size:11px;font-weight:700;color:var(--dark);}
+.an-we-days{font-size:9px;color:var(--muted);margin-top:2px;}
+.an-we-val{font-size:13px;font-weight:800;color:var(--gold);text-align:right;}
+.an-we-bot{font-size:9px;color:var(--muted);text-align:right;}
+
 /* PDF SELECTOR MODAL */
 .pdf-ov{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:400;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s;}
 .pdf-ov.on{opacity:1;pointer-events:all;}
@@ -465,12 +514,26 @@ select:focus,input:focus{border-color:var(--gold2);}
         Azzera tutti i tavoli
       </button>
       <p style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px;">⚠️ L'operazione è irreversibile</p>
-      <button onclick="openPdfSelector()" style="width:100%;margin-top:10px;padding:13px;background:none;border:2px solid var(--gold2);border-radius:10px;font-family:-apple-system,sans-serif;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" xmlns="http://www.w3.org/2000/svg"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9,15 12,18 15,15"/></svg>
-        Salva PDF rapporto
-      </button>
 
-      <div style="margin-top:24px;">
+
+      <!-- ══ ANALYTICS ══ -->
+      <div class="an-section" style="margin-top:12px;">
+        <div class="sec-lbl" style="margin:0 0 12px;">📊 Analisi & Confronto</div>
+        <div class="an-tabs" id="an-tabs">
+          <button class="an-tab on" data-f="weekend" onclick="setAnFilter('weekend')">🎉 Finais de semana</button>
+          <button class="an-tab" data-f="weekly" onclick="setAnFilter('weekly')">📅 Settimane</button>
+          <button class="an-tab" data-f="monthly" onclick="setAnFilter('monthly')">📆 Mesi</button>
+          <button class="an-tab" data-f="custom" onclick="setAnFilter('custom')">🗓 Personalizzato</button>
+        </div>
+        <div id="an-custom-row" class="an-date-row" style="display:none;">
+          <input type="date" id="an-date-from" onchange="renderAnalytics()">
+          <span style="font-size:11px;color:var(--muted);flex-shrink:0;">→</span>
+          <input type="date" id="an-date-to" onchange="renderAnalytics()">
+        </div>
+        <div id="an-content"><div class="an-empty">Caricamento dati...</div></div>
+      </div>
+
+      <div style="margin-top:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
           <div class="sec-lbl" style="margin:0;">Storico Turni</div>
           <button onclick="askClearStorico()" style="font-size:10px;font-weight:700;color:var(--red);background:none;border:1.5px solid rgba(192,57,43,.3);border-radius:20px;padding:4px 12px;cursor:pointer;letter-spacing:.06em;">Cancella storico</button>
@@ -999,7 +1062,13 @@ function openStoricoModal(ts) {
         '<table class="rtable"><thead><tr><th>Tavolo</th><th style="text-align:right">Bottiglie</th></tr></thead><tbody>' + rows + '</tbody></table>' +
       '</div>' +
       '<div class="rsec"><div class="rslbl">Bottiglie vendute</div><div class="pills">' + (pills(spC) || '—') + '</div></div>' +
-      '<div class="rsec"><div class="rslbl">Soft drinks usciti</div><div class="pills">' + (pills(sfC) || '—') + '</div></div>';
+      '<div class="rsec"><div class="rslbl">Soft drinks usciti</div><div class="pills">' + (pills(sfC) || '—') + '</div></div>' +
+      '<div style="margin-top:20px;padding-top:16px;border-top:1.5px solid var(--border);">' +
+        '<button onclick="generatePDF(' + item.ts + ')" style="width:100%;padding:14px;background:var(--dark);color:var(--gold2);border:none;border-radius:var(--rsm);font-family:-apple-system,sans-serif;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">' +
+          '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9,15 12,18 15,15"/></svg>' +
+          'Esporta PDF' +
+        '</button>' +
+      '</div>';
 
     document.getElementById('smodOv').classList.add('on');
   });
@@ -1125,18 +1194,6 @@ function updateBtn(id){
 }
 function buildMap(){ALL_IDS.forEach(function(id){updateBtn(id);});}
 
-function showPage(name){
-  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on');});
-  document.querySelectorAll('.ntab').forEach(function(t){t.classList.remove('on');});
-  document.getElementById('page-'+name).classList.add('on');
-  document.getElementById('tab-'+name).classList.add('on');
-  if(name==='report')renderReport();
-  if(name==='chiusura'){
-    var cnt=Object.keys(TD).filter(function(k){return hasD(k);}).length;
-    document.getElementById('chiusura-count').textContent=cnt;
-    loadStorico();
-  }
-}
 
 function askClearStorico(){
   showCov('Cancellare lo storico?','Eliminare tutti i turni salvati? Questa operazione non può essere annullata.',function(){
@@ -1878,7 +1935,8 @@ function closePdfSelector(){
 }
 
 function generatePDF(ts){
-  closePdfSelector();
+  try{ closePdfSelector(); }catch(e){}
+  try{ closeStoricoModal(); }catch(e){}
   if(!dbStorico) return;
   dbStorico.child(String(ts)).once('value', function(snap){
     var item = snap.val();
@@ -1992,6 +2050,382 @@ function generatePDF(ts){
     a.click();
     setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(blobUrl); }, 5000);
   });
+}
+
+
+// ══════════════════════════════════════════════════════════
+// ANALYTICS SYSTEM
+// ══════════════════════════════════════════════════════════
+var _anFilter = 'weekend';
+
+function setAnFilter(f){
+  _anFilter = f;
+  document.querySelectorAll('.an-tab').forEach(function(b){
+    b.classList.toggle('on', b.getAttribute('data-f') === f);
+  });
+  var cr = document.getElementById('an-custom-row');
+  if(cr) cr.style.display = f === 'custom' ? 'flex' : 'none';
+  renderAnalytics();
+}
+
+// ── Helpers ───────────────────────────────────────────────
+function getMilanNow(){
+  var now = new Date();
+  var jan = new Date(now.getFullYear(),0,1), jul = new Date(now.getFullYear(),6,1);
+  var isDST = now.getTimezoneOffset() < Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
+  return new Date(now.getTime() + (now.getTimezoneOffset() + (isDST?2:1)*60)*60000);
+}
+
+function fmtDateShort(d){
+  if(!d) return '';
+  var months=['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  return d.getDate()+' '+months[d.getMonth()];
+}
+
+function fmtMonthName(m){
+  var months=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  return months[m];
+}
+
+function isFriSatSun(d){
+  var dow = d.getDay(); // 0=dom,5=ven,6=sab
+  return dow === 5 || dow === 6 || dow === 0;
+}
+
+// Aggrega turni: calcola bottiglie e valore (esclude PR)
+function aggregateTurns(turns){
+  var bottles=0, value=0, spC={}, sfC={};
+  turns.forEach(function(item){
+    var storedTD = item.data||{};
+    Object.keys(storedTD).forEach(function(id){
+      var t=storedTD[id]; if(!t||!t.clients) return;
+      normalizeClients(t.clients).forEach(function(c){
+        if(c.pr) return;
+        (c.bottles||[]).forEach(function(b){
+          if(!b.spirit) return;
+          var q=parseInt(b.qty)||0; bottles+=q;
+          spC[b.spirit]=(spC[b.spirit]||0)+q;
+          value+=q*(b.brand&&PRICES[b.brand]?PRICES[b.brand]:0);
+        });
+        if(c.tickets&&c.tickets>0) value+=300;
+        var al=allowedSofts(c);
+        var us=Object.values(c.softs||{}).reduce(function(s,v){return s+(v||0);},0);
+        value+=Math.max(0,us-al)*10;
+        var EP={frutta:40,pizza:25,sandwich:27,patatine:10};
+        Object.keys(EP).forEach(function(k){if((c.extras||{})[k])value+=EP[k];});
+        Object.keys(c.softs||{}).forEach(function(sid){
+          var v=c.softs[sid]; if(!v||v<=0) return;
+          var sd=SOFTS.find(function(s){return s.id===sid;});
+          if(sd) sfC[sd.n]=(sfC[sd.n]||0)+v;
+        });
+      });
+    });
+  });
+  return {bottles:bottles, value:value, spC:spC, sfC:sfC, turns:turns.length};
+}
+
+function deltaHtml(cur, prev){
+  if(!prev||prev===0) return '<span class="an-delta eq">—</span>';
+  var pct=Math.round((cur-prev)/prev*100);
+  var cl=pct>0?'up':pct<0?'dn':'eq';
+  return '<span class="an-delta '+cl+'">'+(pct>=0?'▲':'▼')+' '+Math.abs(pct)+'%</span>';
+}
+
+function barHtml(val, max, cls){
+  var pct = max>0 ? Math.min(100, Math.round(val/max*100)) : 0;
+  return '<div class="an-bar-wrap"><div class="an-bar-fill '+(cls||'')+'" style="width:'+pct+'%"></div></div>';
+}
+
+// ── Main render ───────────────────────────────────────────
+function renderAnalytics(){
+  var el = document.getElementById('an-content');
+  if(!el) return;
+  if(!dbStorico){
+    setTimeout(renderAnalytics, 800);
+    return;
+  }
+  el.innerHTML = '<div class="an-empty">Caricamento...</div>';
+
+  dbStorico.orderByChild('ts').once('value', function(snap){
+    var allItems = [];
+    var seen = {};
+    snap.forEach(function(child){
+      var v = child.val();
+      if(v&&v.ts&&!seen[v.ts]){ seen[v.ts]=1; allItems.push(v); }
+    });
+
+    if(!allItems.length){
+      el.innerHTML = '<div class="an-empty">Nessun turno nel storico.<br>I dati appaiono dopo la chiusura turno.</div>';
+      return;
+    }
+
+    if(_anFilter === 'weekend') renderWeekend(el, allItems);
+    else if(_anFilter === 'weekly') renderWeekly(el, allItems);
+    else if(_anFilter === 'monthly') renderMonthly(el, allItems);
+    else if(_anFilter === 'custom') renderCustom(el, allItems);
+  });
+}
+
+// ── FINAIS DE SEMANA ──────────────────────────────────────
+function renderWeekend(el, allItems){
+  // Group turns by weekend (Fri-Sun block)
+  // A weekend = the Fri-Sun block; identify by the Monday after
+  var weGroups = {};
+  allItems.forEach(function(item){
+    var d = new Date(item.ts);
+    // Find the Sunday of this item (or next Sunday)
+    var dow = d.getDay(); // 0=sun
+    var daysToSun = dow===0 ? 0 : 7-dow;
+    var sun = new Date(d); sun.setDate(d.getDate()+daysToSun);
+    sun.setHours(0,0,0,0);
+    var key = sun.getTime();
+    if(!isFriSatSun(d)) return; // skip non-weekend turns
+    if(!weGroups[key]) weGroups[key] = {sun:sun, items:[]};
+    weGroups[key].items.push(item);
+  });
+
+  var weekends = Object.keys(weGroups).sort(function(a,b){return b-a;}).slice(0,8).map(function(k){
+    var g = weGroups[k];
+    var agg = aggregateTurns(g.items);
+    var fri = new Date(g.sun); fri.setDate(fri.getDate()-2);
+    return {sun:g.sun, fri:fri, agg:agg};
+  });
+
+  if(!weekends.length){
+    el.innerHTML='<div class="an-empty">Nessun dato weekend.<br>I turni di venerdì, sabato e domenica appariranno qui.</div>';
+    return;
+  }
+
+  var maxVal = Math.max.apply(null, weekends.map(function(w){return w.agg.value;}));
+  var medals = ['🥇','🥈','🥉'];
+  var sorted = weekends.slice().sort(function(a,b){return b.agg.value-a.agg.value;});
+
+  // Top 3
+  var top3 = '<div class="an-sec"><div class="an-sec-lbl">Top Weekend per Valore</div>';
+  sorted.slice(0,3).forEach(function(w,i){
+    top3 += '<div class="an-we-row">'+
+      '<div class="an-we-rank">'+(medals[i]||'')+'</div>'+
+      '<div class="an-we-info">'+
+        '<div class="an-we-date">'+fmtDateShort(w.fri)+' – '+fmtDateShort(w.sun)+'</div>'+
+        '<div class="an-we-days">'+w.agg.turns+' turn'+(w.agg.turns===1?'o':'i')+'</div>'+
+      '</div>'+
+      '<div>'+
+        '<div class="an-we-val">'+fmtEur(w.agg.value)+'</div>'+
+        '<div class="an-we-bot">'+w.agg.bottles+'🍾</div>'+
+      '</div>'+
+    '</div>';
+  });
+  top3 += '</div>';
+
+  // Ultimi 4 weekend bar chart
+  var last4 = weekends.slice(0,4);
+  var bars = '<div class="an-sec"><div class="an-sec-lbl">Ultimi '+last4.length+' Weekend</div>';
+  last4.forEach(function(w){
+    bars += '<div class="an-bar-row">'+
+      '<span class="an-bar-lbl">'+fmtDateShort(w.fri)+'-'+fmtDateShort(w.sun)+'</span>'+
+      barHtml(w.agg.value, maxVal, '')+
+      '<span class="an-bar-num">'+fmtEur(w.agg.value)+'</span>'+
+    '</div>';
+  });
+  bars += '</div>';
+
+  // Avg
+  var totalVal = weekends.reduce(function(s,w){return s+w.agg.value;},0);
+  var avgVal = Math.round(totalVal/weekends.length);
+  var totalBot = weekends.reduce(function(s,w){return s+w.agg.bottles;},0);
+  var avgBot = Math.round(totalBot/weekends.length);
+
+  var kpis = '<div class="an-kpis">'+
+    '<div class="an-kpi gold"><div class="an-kval sm">'+fmtEur(avgVal)+'</div><div class="an-klbl">Media Weekend</div></div>'+
+    '<div class="an-kpi"><div class="an-kval">'+avgBot+'</div><div class="an-klbl">Media Bottiglie</div></div>'+
+  '</div>';
+
+  el.innerHTML = kpis + top3 + bars;
+}
+
+// ── SETTIMANE ─────────────────────────────────────────────
+function renderWeekly(el, allItems){
+  // Group by ISO week (Mon-Sun)
+  var wkGroups = {};
+  allItems.forEach(function(item){
+    var d = new Date(item.ts);
+    var dow = d.getDay(); // 0=sun
+    var mon = new Date(d);
+    mon.setDate(d.getDate() - (dow===0?6:dow-1));
+    mon.setHours(0,0,0,0);
+    var key = mon.getTime();
+    if(!wkGroups[key]) wkGroups[key] = {mon:mon, items:[]};
+    wkGroups[key].items.push(item);
+  });
+
+  var weeks = Object.keys(wkGroups).sort(function(a,b){return b-a;}).slice(0,8).map(function(k){
+    var g = wkGroups[k];
+    var sun = new Date(g.mon); sun.setDate(g.mon.getDate()+6);
+    var agg = aggregateTurns(g.items);
+    return {mon:g.mon, sun:sun, agg:agg};
+  });
+
+  if(!weeks.length){
+    el.innerHTML='<div class="an-empty">Nessun dato settimanale.</div>';
+    return;
+  }
+
+  var maxVal = Math.max.apply(null, weeks.map(function(w){return w.agg.value;}));
+  var cur = weeks[0], prev = weeks[1]||null;
+
+  var kpis = '<div class="an-kpis">'+
+    '<div class="an-kpi gold"><div class="an-kval sm">'+fmtEur(cur.agg.value)+'</div><div class="an-klbl">Questa settimana</div>'+
+      (prev?deltaHtml(cur.agg.value,prev.agg.value):'')+
+    '</div>'+
+    '<div class="an-kpi"><div class="an-kval">'+cur.agg.bottles+'</div><div class="an-klbl">Bottiglie</div>'+
+      (prev?deltaHtml(cur.agg.bottles,prev.agg.bottles):'')+
+    '</div>'+
+  '</div>';
+
+  var bars = '<div class="an-sec"><div class="an-sec-lbl">Ultime '+weeks.length+' Settimane</div>';
+  weeks.forEach(function(w,i){
+    bars += '<div class="an-bar-row">'+
+      '<span class="an-bar-lbl">'+fmtDateShort(w.mon)+'-'+fmtDateShort(w.sun)+'</span>'+
+      barHtml(w.agg.value, maxVal, i===0?'':'blue')+
+      '<span class="an-bar-num" style="'+(i===0?'color:var(--gold)':'')+'">'+fmtEur(w.agg.value)+'</span>'+
+    '</div>';
+  });
+  bars += '</div>';
+
+  el.innerHTML = kpis + bars;
+}
+
+// ── MESI ──────────────────────────────────────────────────
+function renderMonthly(el, allItems){
+  // Group by year-month
+  var mGroups = {};
+  allItems.forEach(function(item){
+    var d = new Date(item.ts);
+    var key = d.getFullYear()+'-'+(d.getMonth()+1);
+    if(!mGroups[key]) mGroups[key] = {year:d.getFullYear(), month:d.getMonth(), items:[]};
+    mGroups[key].items.push(item);
+  });
+
+  var months = Object.keys(mGroups).sort(function(a,b){
+    return b.localeCompare(a);
+  }).map(function(k){
+    var g = mGroups[k];
+    return {year:g.year, month:g.month, key:k, agg:aggregateTurns(g.items)};
+  });
+
+  if(!months.length){
+    el.innerHTML='<div class="an-empty">Nessun dato mensile.</div>';
+    return;
+  }
+
+  var maxVal = Math.max.apply(null, months.map(function(m){return m.agg.value;}));
+  var best = months.slice().sort(function(a,b){return b.agg.value-a.agg.value;})[0];
+  var cur = months[0], prev = months[1]||null;
+
+  var kpis = '<div class="an-kpis">'+
+    '<div class="an-kpi gold"><div class="an-kval sm">'+fmtEur(cur.agg.value)+'</div>'+
+      '<div class="an-klbl">'+fmtMonthName(cur.month)+' '+cur.year+'</div>'+
+      (prev?deltaHtml(cur.agg.value,prev.agg.value):'')+
+    '</div>'+
+    '<div class="an-kpi"><div class="an-kval" style="font-size:14px;">'+fmtMonthName(best.month)+'</div>'+
+      '<div class="an-klbl">Mese migliore</div>'+
+      '<div style="font-size:11px;font-weight:800;color:var(--gold);margin-top:4px;">'+fmtEur(best.agg.value)+'</div>'+
+    '</div>'+
+  '</div>';
+
+  // Month bars (all months, best highlighted)
+  var bars = '<div class="an-sec"><div class="an-sec-lbl">Confronto Mese x Mese</div>';
+  months.forEach(function(m){
+    var isBest = m.key === best.key;
+    var pct = maxVal>0?Math.round(m.agg.value/maxVal*100):0;
+    bars += '<div class="an-month-row">'+
+      '<span class="an-month-name" style="'+(isBest?'color:var(--gold);font-weight:800;':'')+'">'+
+        fmtMonthName(m.month).slice(0,3)+' '+m.year+
+        (isBest?' 🏆':'')+
+      '</span>'+
+      '<div class="an-month-bar"><div class="an-month-fill" style="width:'+pct+'%;'+(isBest?'background:var(--gold);':'')+'"></div></div>'+
+      '<span class="an-month-val">'+fmtEur(m.agg.value)+'</span>'+
+      '<span class="an-month-sub">'+m.agg.bottles+'🍾</span>'+
+    '</div>';
+  });
+  bars += '</div>';
+
+  // Top 3 spirits across all months
+  var allSpC = {};
+  months.forEach(function(m){ Object.keys(m.agg.spC).forEach(function(k){ allSpC[k]=(allSpC[k]||0)+m.agg.spC[k]; }); });
+  var topSp = Object.keys(allSpC).sort(function(a,b){return allSpC[b]-allSpC[a];}).slice(0,3);
+  var maxSp = allSpC[topSp[0]]||1;
+  var spBars = '<div class="an-sec"><div class="an-sec-lbl">Top Bottiglie (tutto il periodo)</div>';
+  topSp.forEach(function(k,i){
+    spBars += '<div class="an-bar-row">'+
+      '<span class="an-bar-lbl">'+['🥇','🥈','🥉'][i]+' '+k+'</span>'+
+      barHtml(allSpC[k],maxSp,'blue')+
+      '<span class="an-bar-num">'+allSpC[k]+'x</span>'+
+    '</div>';
+  });
+  spBars += '</div>';
+
+  el.innerHTML = kpis + bars + spBars;
+}
+
+// ── PERSONALIZZATO ────────────────────────────────────────
+function renderCustom(el, allItems){
+  var df = document.getElementById('an-date-from');
+  var dt = document.getElementById('an-date-to');
+  if(!df||!dt||!df.value||!dt.value){
+    el.innerHTML='<div class="an-empty">Seleziona un intervallo di date.</div>';
+    return;
+  }
+  var from = new Date(df.value+'T00:00:00');
+  var to = new Date(dt.value+'T23:59:59');
+  var filtered = allItems.filter(function(item){
+    var d=new Date(item.ts); return d>=from&&d<=to;
+  });
+
+  if(!filtered.length){
+    el.innerHTML='<div class="an-empty">Nessun turno nel periodo selezionato.</div>';
+    return;
+  }
+
+  var agg = aggregateTurns(filtered);
+  var maxSp = Math.max.apply(null,Object.values(agg.spC).concat([1]));
+  var maxSf = Math.max.apply(null,Object.values(agg.sfC).concat([1]));
+  var topSp = Object.keys(agg.spC).sort(function(a,b){return agg.spC[b]-agg.spC[a];}).slice(0,5);
+  var topSf = Object.keys(agg.sfC).sort(function(a,b){return agg.sfC[b]-agg.sfC[a];}).slice(0,3);
+
+  var kpis = '<div class="an-kpis">'+
+    '<div class="an-kpi gold"><div class="an-kval sm">'+fmtEur(agg.value)+'</div><div class="an-klbl">Valore Totale</div></div>'+
+    '<div class="an-kpi"><div class="an-kval">'+agg.bottles+'</div><div class="an-klbl">Bottiglie</div></div>'+
+  '</div>'+
+  '<div class="an-kpis">'+
+    '<div class="an-kpi"><div class="an-kval">'+agg.turns+'</div><div class="an-klbl">Turni</div></div>'+
+    '<div class="an-kpi"><div class="an-kval sm">'+(agg.turns?fmtEur(Math.round(agg.value/agg.turns)):'—')+'</div><div class="an-klbl">Media a turno</div></div>'+
+  '</div>';
+
+  var spBars = topSp.length?'<div class="an-sec"><div class="an-sec-lbl">Bottiglie vendute</div>'+
+    topSp.map(function(k){ return '<div class="an-bar-row"><span class="an-bar-lbl">'+k+'</span>'+barHtml(agg.spC[k],maxSp,'')+'<span class="an-bar-num">'+agg.spC[k]+'x</span></div>'; }).join('')+
+  '</div>':'';
+
+  var sfBars = topSf.length?'<div class="an-sec"><div class="an-sec-lbl">Top 3 Soft</div>'+
+    topSf.map(function(k,i){ return '<div class="an-bar-row"><span class="an-bar-lbl">'+['🥇','🥈','🥉'][i]+' '+k+'</span>'+barHtml(agg.sfC[k],maxSf,'blue')+'<span class="an-bar-num">'+agg.sfC[k]+'x</span></div>'; }).join('')+
+  '</div>':'';
+
+  el.innerHTML = kpis + spBars + sfBars;
+}
+
+// Trigger analytics when chiusura tab opens
+function showPage(name){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('on');});
+  document.querySelectorAll('.ntab').forEach(function(t){t.classList.remove('on');});
+  document.getElementById('page-'+name).classList.add('on');
+  document.getElementById('tab-'+name).classList.add('on');
+  if(name==='report') renderReport();
+  if(name==='chiusura'){
+    var cnt=Object.keys(TD).filter(function(k){return hasD(k);}).length;
+    document.getElementById('chiusura-count').textContent=cnt;
+    loadStorico();
+    renderAnalytics();
+  }
 }
 
 window.addEventListener('DOMContentLoaded',function(){
