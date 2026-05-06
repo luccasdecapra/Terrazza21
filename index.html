@@ -66,6 +66,14 @@ body{font-family:-apple-system,"SF Pro Text","Helvetica Neue",Arial,sans-serif;c
 .t.act{background:#e53935;border-color:#c62828;}
 .t.act .tname,.t.act .tname-sm{color:#fff;}
 .t.act .tinfo{color:#ffcdd2;}
+/* VOUCHER — blue */
+.t.voucher-active{background:#0041C2;border-color:#002fa0;}
+.t.voucher-active .tname,.t.voucher-active .tname-sm{color:#fff;}
+.t.voucher-active .tinfo{color:#aac4ff;}
+/* CONTO APERTO — green */
+.t.conto-aperto{background:#00A86B;border-color:#007a4d;}
+.t.conto-aperto .tname,.t.conto-aperto .tname-sm{color:#fff;}
+.t.conto-aperto .tinfo{color:#b2f0d8;}
 /* MULTI — red border only (previous clients have data, current is empty) */
 .t.multi{border-color:#c62828;border-width:2.5px;}
 .tname{font-size:11px;font-weight:800;color:var(--dark);line-height:1;}
@@ -902,7 +910,7 @@ function normalizeClients(raw){
     var bottles=c.bottles;
     if(bottles&&!Array.isArray(bottles)) bottles=Object.keys(bottles).sort(function(a,b){return a-b;}).map(function(k){return bottles[k];});
     if(!bottles||!bottles.length) bottles=[{spirit:'',brand:'',qty:1}];
-    return {num:c.num||1, bottles:bottles, softs:c.softs||{}, tickets:c.tickets||0, pax:c.pax||0, extras:c.extras||{}, pr:c.pr||false};
+    return {num:c.num||1, bottles:bottles, softs:c.softs||{}, tickets:c.tickets||0, pax:c.pax||0, extras:c.extras||{}, pr:c.pr||false, voucher:c.voucher||0, conto_aperto:c.conto_aperto||false};
   });
 }
 function normalizeTD(raw){
@@ -1094,7 +1102,7 @@ function requestCloseSheet() {
 }
 
 function getT(id){return getTableData(id);}
-function mkC(n){return{num:n,bottles:[{spirit:'',brand:'',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false};}
+function mkC(n){return{num:n,bottles:[{spirit:'',brand:'',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false,voucher:0,conto_aperto:false};}
 function getTableData(id){if(!TD[id])TD[id]={clients:[mkC(1)]};if(!TD[id].nota)TD[id].nota='';if(typeof TD[id].reserva==='undefined')TD[id].reserva=false;return TD[id];}
 function totB(c){return c.bottles.reduce(function(s,b){return s+(b.spirit?(parseInt(b.qty)||0):0);},0);}
 function bottleSofts(b){
@@ -1156,18 +1164,32 @@ function updateBtn(id){
   var isReserva=TD[id]&&TD[id].reserva&&!occupied&&!hasPrevData;
   var lastC=null;try{lastC=TD[id]&&TD[id].clients&&TD[id].clients.length>0?TD[id].clients[TD[id].clients.length-1]:null;}catch(e){}
   var isPRbtn=lastC&&lastC.pr&&(totB(lastC)>0||lastC.tickets>0);
-  el.classList.remove('act','multi','reserva','pr-active');
+  el.classList.remove('act','multi','reserva','pr-active','voucher-active','conto-aperto');
   var prb=el.querySelector('.pr-badge');if(prb)prb.remove();
 
-  if(occupied){
-    el.classList.add('act');
+  // Determine active client state for color
+  var activeClient = lastC && (totB(lastC)>0||lastC.tickets>0||lastC.voucher>0||lastC.conto_aperto) ? lastC : null;
+  var hasVoucher = activeClient && activeClient.voucher > 0;
+  var hasContoAperto = activeClient && activeClient.conto_aperto;
+  // Voucher spent = voucher value - consumption value
+  var voucherSpent = hasVoucher ? totEur(activeClient) : 0;
+  var voucherExhausted = hasVoucher && voucherSpent >= activeClient.voucher;
+
+  if(occupied && !hasVoucher && !hasContoAperto){
+    el.classList.add('act'); // red — normal occupied
+  } else if(hasVoucher && !voucherExhausted){
+    el.classList.add('voucher-active'); // blue — voucher not yet spent
+  } else if(hasVoucher && voucherExhausted){
+    el.classList.add('act'); // red — voucher exhausted
+  } else if(hasContoAperto){
+    el.classList.add('conto-aperto'); // green — conto aperto
   } else if(hasPrevData){
     el.classList.add('multi');
   }
   if(isPRbtn){
     el.classList.add('pr-active');
     var badge=document.createElement('span');badge.className='pr-badge';badge.textContent='PR';el.appendChild(badge);
-  } else if(isReserva){
+  } else if(isReserva && !occupied && !hasVoucher && !hasContoAperto){
     el.classList.add('reserva');
   }
 
@@ -1357,6 +1379,22 @@ function renderSheet(){
     '<div class="pr-check-box">'+(isPR?'✓':'')+' </div>'+
     '<span class="pr-toggle-lbl">🟣 Tav. PR — Offerta</span>'+
     '</div>'+
+    // Voucher
+    '<div style="display:flex;align-items:center;gap:10px;background:var(--bg2);border:2px solid '+(isPR?'var(--border)':(c.voucher>0?'#0041C2':'var(--border)'))+';border-radius:var(--rsm);padding:10px 14px;margin-bottom:8px;">'+
+    '<div style="flex:1;font-size:13px;font-weight:700;color:'+(c.voucher>0?'#0041C2':'var(--dark)')+';">🎟 Voucher</div>'+
+    '<div style="display:flex;align-items:center;gap:6px;">'+
+      '<input type="number" id="voucher-input" value="'+(c.voucher||0)+'" min="0" step="50" onchange="setVoucher(this.value)" style="width:80px;padding:6px 8px;background:var(--bg3);border:2px solid var(--border2);border-radius:6px;color:var(--dark);font-family:-apple-system,sans-serif;font-size:15px;font-weight:700;text-align:center;outline:none;" placeholder="0">'+
+      '<span style="font-size:13px;font-weight:700;color:var(--muted);">€</span>'+
+    '</div>'+
+    (c.voucher>0?'<div style="font-size:11px;font-weight:800;color:'+(voucherRemaining(c)>0?'#0041C2':'#c62828')+';">'+
+      (voucherRemaining(c)>0?'Rimane: '+fmtEur(voucherRemaining(c)):'Voucher esaurito')+
+    '</div>':'')+
+    '</div>'+
+    // Conto Aperto
+    '<div class="pr-toggle-row'+(c.conto_aperto?' on':'')+'" onclick="togContoAperto()" id="ca-toggle" style="'+(c.conto_aperto?'border-color:#00A86B;background:#E8F5F0;':'')+'margin-bottom:14px;">'+
+    '<div class="pr-check-box" style="'+(c.conto_aperto?'background:#00A86B;border-color:#00A86B;':'')+'">'+( c.conto_aperto?'✓':'')+' </div>'+
+    '<span class="pr-toggle-lbl" style="'+(c.conto_aperto?'color:#00A86B;':'')+'">🟢 Conto Aperto</span>'+
+    '</div>'+
     '<div class="slbl">Bottiglie</div>'+bottles+
     '<button class="badd" onclick="addB()">+ aggiungi bottiglia</button>'+
     '<div class="slbl" style="margin-top:16px">Ticket</div>'+
@@ -1393,14 +1431,16 @@ function chgPax(d){var c=getT(CT).clients[CC];c.pax=Math.max(0,(c.pax||0)+d);var
 function togExtra(id){var c=getT(CT).clients[CC];if(!c.extras)c.extras={};c.extras[id]=!c.extras[id];var btn=document.getElementById('ex-'+id);if(btn){btn.classList.toggle('on',!!c.extras[id]);btn.querySelector('.xtick').textContent=c.extras[id]?'✓ ':'';}saveToFirebase();}
 function swC(i){CC=i;renderSheet();}
 function togPR(){var c=getT(CT).clients[CC];c.pr=!c.pr;saveToFirebase();updateBtn(CT);renderSheet();}
+function togContoAperto(){var c=getT(CT).clients[CC];c.conto_aperto=!c.conto_aperto;saveToFirebase();updateBtn(CT);renderSheet();}
+function setVoucher(val){var c=getT(CT).clients[CC];c.voucher=Math.max(0,parseInt(val)||0);saveToFirebase();updateBtn(CT);refTot();}
 function saveNota(v){var t=getTableData(CT);t.nota=v;saveToFirebase();}
 function togReserva(){var t=getTableData(CT);t.reserva=!t.reserva;saveToFirebase();updateBtn(CT);renderSheet();}
-function addC(){var t=getT(CT),n=Math.max.apply(null,t.clients.map(function(c){return c.num;}))+1;t.clients.push(mkC(n));CC=t.clients.length-1;saveToFirebase();renderSheet();buildMap();}
+function addC(){var t=getT(CT),n=Math.max.apply(null,t.clients.map(function(c){return c.num;}))+1;t.clients.push(mkC(n));CC=t.clients.length-1;saveToFirebase();renderSheet();buildMap();playBell();}
 function askRemC(i){var t=getT(CT);showCov('Rimuovere cliente','Rimuovere il '+t.clients[i].num+'° cliente?',function(){t.clients.splice(i,1);if(CC>=t.clients.length)CC=t.clients.length-1;saveToFirebase();renderSheet();});}
-function updBSpirit(i,v){var c=getT(CT).clients[CC];c.bottles[i].spirit=v;c.bottles[i].brand='';saveToFirebase();refTot();renderSheet();}
+function updBSpirit(i,v){var c=getT(CT).clients[CC];c.bottles[i].spirit=v;c.bottles[i].brand='';saveToFirebase();refTot();renderSheet();if(v) playBell();}
 function chgTick(d){var c=getT(CT).clients[CC];c.tickets=Math.max(0,(c.tickets||0)+d);var el=document.getElementById('tv-tick');if(el)el.textContent=c.tickets;saveToFirebase();updateBtn(CT);}
 function updB(i,f,v){var c=getT(CT).clients[CC];c.bottles[i][f]=f==='qty'?Math.max(1,parseInt(v)||1):v;saveToFirebase();refTot();}
-function qB(i,d){var c=getT(CT).clients[CC];c.bottles[i].qty=Math.max(1,(parseInt(c.bottles[i].qty)||1)+d);var el=document.getElementById('bq'+i);if(el)el.textContent=c.bottles[i].qty;saveToFirebase();refTot();}
+function qB(i,d){var c=getT(CT).clients[CC];c.bottles[i].qty=Math.max(1,(parseInt(c.bottles[i].qty)||1)+d);var el=document.getElementById('bq'+i);if(el)el.textContent=c.bottles[i].qty;saveToFirebase();refTot();if(d>0)playBell();}
 function addB(){getT(CT).clients[CC].bottles.push({spirit:'',brand:'',qty:1});saveToFirebase();renderSheet();}
 function remB(i){var c=getT(CT).clients[CC];c.bottles.splice(i,1);if(!c.bottles.length)c.bottles.push({spirit:'',brand:'',qty:1});saveToFirebase();renderSheet();}
 function cS(id,idx,d){var c=getT(CT).clients[CC];if(!c.softs)c.softs={};c.softs[id]=Math.max(0,(c.softs[id]||0)+d);var ve=document.getElementById('sv'+idx),ie=document.getElementById('sc'+idx);if(ve)ve.textContent=c.softs[id];if(ie){c.softs[id]>0?ie.classList.add('on'):ie.classList.remove('on');}saveToFirebase();refTot();}
@@ -1421,6 +1461,8 @@ function askClear(){showCov('Pulire tavolo','Cancellare tutti i clienti e le bot
 // - ticket: 300€ fisso (indipendente dalla quantità)
 // - soft extra (sopra il limite): 10€ ciascuno
 function totEur(c){
+  // PR clients: tutto gratis (offerta) — no charges at all
+  if(c.pr) return 0;
   var bottleEur=(c.bottles||[]).reduce(function(s,b){
     if(!b.spirit) return s;
     var qty=parseInt(b.qty)||0;
@@ -1430,11 +1472,16 @@ function totEur(c){
   var ticketEur=(c.tickets&&c.tickets>0)?300:0;
   var EXTRAS_PRICES={frutta:40,pizza:25,sandwich:27,patatine:10};
   var extrasEur=Object.keys(EXTRAS_PRICES).reduce(function(s,k){return s+((c.extras||{})[k]?EXTRAS_PRICES[k]:0);},0);
+  // PR: no extra soft charge; others: 10€ per extra soft
   var allowed=allowedSofts(c);
   var used=Object.values(c.softs||{}).reduce(function(s,v){return s+(v||0);},0);
-  var extraSofts=Math.max(0,used-allowed);
-  var softEur=extraSofts*10;
+  var softEur=Math.max(0,used-allowed)*10;
   return bottleEur+ticketEur+softEur+extrasEur;
+}
+// Voucher rimanente = voucher - consumazione (min 0)
+function voucherRemaining(c){
+  if(!c.voucher||c.voucher<=0) return 0;
+  return Math.max(0, c.voucher - totEur(c));
 }
 // Helper: formatta € con separatore migliaia
 function fmtEur(v){
@@ -2442,6 +2489,84 @@ function showPage(name){
     loadStorico();
     renderAnalytics();
   }
+}
+
+
+// ── SOUND SYSTEM ──────────────────────────────────────────
+var _audioCtx = null;
+function getAudioCtx(){
+  if(!_audioCtx){
+    try{ _audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+  }
+  return _audioCtx;
+}
+
+// Classic hotel/movie bell — layered harmonics with sharp attack and long decay
+function playBell(){
+  var ctx = getAudioCtx();
+  if(!ctx) return;
+  try{
+    if(ctx.state === 'suspended') ctx.resume();
+    var t = ctx.currentTime;
+    var master = ctx.createGain();
+    master.connect(ctx.destination);
+    master.gain.setValueAtTime(1.0, t);
+
+    // Bell is made of multiple sine partials tuned like a real bell
+    // Fundamental + inharmonic overtones (ratio not integer — key to bell sound)
+    var partials = [
+      {freq: 523.25, gain: 0.7,  decay: 3.0},  // C5 — fundamental
+      {freq: 659.26, gain: 0.5,  decay: 2.0},  // E5 — minor third
+      {freq: 783.99, gain: 0.4,  decay: 1.8},  // G5 — fifth
+      {freq: 1046.5, gain: 0.35, decay: 2.5},  // C6 — octave
+      {freq: 1318.5, gain: 0.25, decay: 1.5},  // E6
+      {freq: 1760.0, gain: 0.15, decay: 1.0},  // A6 — shimmer
+      {freq: 2093.0, gain: 0.1,  decay: 0.8},  // C7 — sparkle
+    ];
+
+    partials.forEach(function(p){
+      var osc = ctx.createOscillator();
+      var env = ctx.createGain();
+      osc.connect(env);
+      env.connect(master);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(p.freq, t);
+      // Sharp attack, long exponential decay — classic bell envelope
+      env.gain.setValueAtTime(0, t);
+      env.gain.linearRampToValueAtTime(p.gain, t + 0.005); // 5ms attack
+      env.gain.exponentialRampToValueAtTime(0.0001, t + p.decay);
+      osc.start(t);
+      osc.stop(t + p.decay + 0.1);
+    });
+
+    // Add a tiny metallic click at the very start (hammer strike)
+    var clickBuf = ctx.createBuffer(1, ctx.sampleRate * 0.02, ctx.sampleRate);
+    var d = clickBuf.getChannelData(0);
+    for(var i = 0; i < d.length; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/d.length, 3);
+    var click = ctx.createBufferSource();
+    var clickGain = ctx.createGain();
+    click.buffer = clickBuf;
+    click.connect(clickGain);
+    clickGain.connect(master);
+    clickGain.gain.setValueAtTime(0.4, t);
+    clickGain.gain.exponentialRampToValueAtTime(0.001, t + 0.02);
+    click.start(t);
+
+    // Vibration pattern
+    if(navigator.vibrate) navigator.vibrate([80, 40, 40]);
+  }catch(e){ console.warn('Audio error:', e); }
+}
+
+// Play bell when a bottle is added
+var _prevBottleCount = 0;
+function checkBottleSound(){
+  var total = Object.keys(TD).reduce(function(s,id){
+    return s + (TD[id]&&TD[id].clients?TD[id].clients.reduce(function(s2,c){return s2+totB(c);},0):0);
+  },0);
+  if(total > _prevBottleCount && _prevBottleCount >= 0){
+    playBell();
+  }
+  _prevBottleCount = total;
 }
 
 window.addEventListener('DOMContentLoaded',function(){
