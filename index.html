@@ -66,6 +66,14 @@ body{font-family:-apple-system,"SF Pro Text","Helvetica Neue",Arial,sans-serif;c
 .t.act{background:#e53935;border-color:#c62828;}
 .t.act .tname,.t.act .tname-sm{color:#fff;}
 .t.act .tinfo{color:#ffcdd2;}
+/* VOUCHER — blue */
+.t.voucher-active{background:#0041C2;border-color:#002fa0;}
+.t.voucher-active .tname,.t.voucher-active .tname-sm{color:#fff;}
+.t.voucher-active .tinfo{color:#aac4ff;}
+/* CONTO APERTO — green */
+.t.conto-aperto{background:#00A86B;border-color:#007a4d;}
+.t.conto-aperto .tname,.t.conto-aperto .tname-sm{color:#fff;}
+.t.conto-aperto .tinfo{color:#b2f0d8;}
 /* MULTI — red border only (previous clients have data, current is empty) */
 .t.multi{border-color:#c62828;border-width:2.5px;}
 .tname{font-size:11px;font-weight:800;color:var(--dark);line-height:1;}
@@ -758,6 +766,7 @@ function initFirebase() {
   dbStorico.once('value', function() {
     // Insert historical entries
     setTimeout(seedVenerdi0804, 500);
+    setTimeout(seedSabato0905, 700);
     if(document.getElementById('page-chiusura') &&
        document.getElementById('page-chiusura').classList.contains('on')) {
       loadStorico();
@@ -1088,19 +1097,30 @@ function updateBtn(id){
   var isReserva=TD[id]&&TD[id].reserva&&!occupied&&!hasPrevData;
   var lastC=null;try{lastC=TD[id]&&TD[id].clients&&TD[id].clients.length>0?TD[id].clients[TD[id].clients.length-1]:null;}catch(e){}
   var isPRbtn=lastC&&lastC.pr&&(totB(lastC)>0||lastC.tickets>0);
-  el.classList.remove('act','multi','reserva','pr-active');
+  el.classList.remove('act','multi','reserva','pr-active','voucher-active','conto-aperto');
+  var prb2=el.querySelector('.pr-badge');if(prb2)prb2.remove();
   var prb=el.querySelector('.pr-badge');if(prb)prb.remove();
 
-  if(occupied){
+  var activeC = lastC&&(totB(lastC)>0||lastC.tickets>0||lastC.voucher>0||lastC.conto_aperto)?lastC:null;
+  var hasVoucher = activeC&&activeC.voucher>0;
+  var hasCA = activeC&&activeC.conto_aperto;
+  var vSpent = hasVoucher?totEur(activeC):0;
+  var vDone = hasVoucher&&vSpent>=activeC.voucher;
+
+  if(hasCA){
+    el.classList.add('conto-aperto');
+  } else if(hasVoucher&&!vDone){
+    el.classList.add('voucher-active');
+  } else if(occupied||vDone){
     el.classList.add('act');
   } else if(hasPrevData){
     el.classList.add('multi');
+  } else if(isReserva){
+    el.classList.add('reserva');
   }
   if(isPRbtn){
     el.classList.add('pr-active');
     var badge=document.createElement('span');badge.className='pr-badge';badge.textContent='PR';el.appendChild(badge);
-  } else if(isReserva){
-    el.classList.add('reserva');
   }
 
   var nameEls=el.querySelectorAll('.tname,.tname-sm');
@@ -1301,6 +1321,10 @@ function renderSheet(){
     '<div class="pr-check-box">'+(isPR?'✓':'')+' </div>'+
     '<span class="pr-toggle-lbl">🟣 Tav. PR — Offerta</span>'+
     '</div>'+
+    '<div onclick="togContoAperto()" style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 14px;border-radius:var(--rsm);border:2px solid '+(c.conto_aperto?'#00A86B':'var(--border)')+';background:'+(c.conto_aperto?'#E8F5F0':'var(--bg2)')+';margin-bottom:8px;">'+
+    '<div style="width:26px;height:26px;border-radius:6px;border:2px solid '+(c.conto_aperto?'#00A86B':'var(--border2)')+';background:'+(c.conto_aperto?'#00A86B':'var(--bg3)')+';display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;flex-shrink:0;">'+(c.conto_aperto?'✓':'')+' </div>'+
+    '<span style="flex:1;font-size:13px;font-weight:700;color:'+(c.conto_aperto?'#00A86B':'var(--dark)')+';">🟢 Conto Aperto</span>'+
+    '</div>'+
     '<div class="slbl">Bottiglie</div>'+bottles+
     '<button class="badd" onclick="addB()">+ aggiungi bottiglia</button>'+
     '<div class="slbl" style="margin-top:16px">Ticket</div>'+
@@ -1355,6 +1379,7 @@ function chgPax(d){var c=getT(CT).clients[CC];c.pax=Math.max(0,(c.pax||0)+d);var
 function togExtra(id){var c=getT(CT).clients[CC];if(!c.extras)c.extras={};c.extras[id]=!c.extras[id];var btn=document.getElementById('ex-'+id);if(btn){btn.classList.toggle('on',!!c.extras[id]);btn.querySelector('.xtick').textContent=c.extras[id]?'✓ ':'';}saveToFirebase();}
 function swC(i){CC=i;renderSheet();}
 function togPR(){var c=getT(CT).clients[CC];c.pr=!c.pr;saveToFirebase();updateBtn(CT);renderSheet();}
+function togContoAperto(){var c=getT(CT).clients[CC];c.conto_aperto=!c.conto_aperto;saveToFirebase();updateBtn(CT);renderSheet();}
 function chgAcquaPiccola(d){var c=getT(CT).clients[CC];c.acqua_piccola=Math.max(0,(c.acqua_piccola||0)+d);var el=document.getElementById('ap-val');if(el)el.textContent=c.acqua_piccola;saveToFirebase();refTot();}
 function togAcquaPay(){var c=getT(CT).clients[CC];c.acqua_piccola_pay=!c.acqua_piccola_pay;saveToFirebase();renderSheet();}
 function chgCorona(d){var c=getT(CT).clients[CC];c.corona_pack=Math.max(0,(c.corona_pack||0)+d);var el=document.getElementById('corona-val');if(el)el.textContent=c.corona_pack;saveToFirebase();refTot();}
@@ -2033,6 +2058,55 @@ function seedVenerdi0804(){
     dbStorico.child(String(ts)).set(entry).then(function(){
       localStorage.setItem(SEED_KEY,'1');
       console.log('Seed 08/04 OK');
+      if(document.getElementById('page-chiusura').classList.contains('on')) loadStorico();
+    }).catch(function(e){console.warn('Seed error:',e);});
+  });
+}
+
+
+// ── SEED: Sabato 09 maggio 2026 ──────────────────────────
+function seedSabato0905(){
+  if(!dbStorico) { setTimeout(seedSabato0905, 800); return; }
+  var SEED_KEY = 'td21_seed_20260509';
+  if(localStorage.getItem(SEED_KEY)) return;
+  var ts = 1778290200000;
+  dbStorico.child(String(ts)).once('value', function(snap){
+    if(snap.exists()){ localStorage.setItem(SEED_KEY,'1'); return; }
+    var entry = {
+      ts: ts,
+      date: 'sabato 9 maggio 2026',
+      time: '03:30',
+      tavoli: 23,
+      bottiglie: 42,
+      data: {
+        '2':    {clients:[{num:1,bottles:[{spirit:'Tequila',brand:'Volcán de mi Tierra Blanco',qty:3}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '4':    {clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1},{spirit:'Vodka',brand:'Belvedere 70cl',qty:1},{spirit:'Champagne',brand:'Veuve Clicquot Yellow Label',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '6':    {clients:[{num:1,bottles:[{spirit:'Gin',brand:"Hendrick's 70cl",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '7':    {clients:[{num:1,bottles:[{spirit:'Champagne',brand:'Veuve Clicquot Yellow Label',qty:3},{spirit:'Tequila',brand:'Casamigos Reposado',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '8':    {clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '9':    {clients:[{num:1,bottles:[{spirit:'Tequila',brand:'Volcán de mi Tierra Blanco',qty:1},{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '10':   {clients:[{num:1,bottles:[{spirit:'Gin',brand:"Hendrick's 70cl",qty:2},{spirit:'Vodka',brand:'Belvedere 70cl',qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'D1':   {clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'J':    {clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:2},{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'G7':   {clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'G5':   {clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:2},{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'G1G2': {clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1},{spirit:'Tequila',brand:'Volcán de mi Tierra Blanco',qty:1},{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'L1S':  {clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Limone 70cl',qty:1},{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'L1D':  {clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'L2D':  {clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'L2S':  {clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'E3':   {clients:[{num:1,bottles:[{spirit:'Gin',brand:'Mare 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'E7':   {clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '51':   {clients:[{num:1,bottles:[{spirit:'Tequila',brand:'Volcán de mi Tierra Reposado',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '52':   {clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '53':   {clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '55':   {clients:[{num:1,bottles:[{spirit:'Prosecco',brand:'Bottega Gold',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'T1':   {clients:[{num:1,bottles:[{spirit:'Tequila',brand:'Volcán de mi Tierra Blanco',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false}
+      }
+    };
+    dbStorico.child(String(ts)).set(entry).then(function(){
+      localStorage.setItem(SEED_KEY,'1');
+      console.log('Seed 09/05 OK — 42 bottiglie 15.250€');
       if(document.getElementById('page-chiusura').classList.contains('on')) loadStorico();
     }).catch(function(e){console.warn('Seed error:',e);});
   });
