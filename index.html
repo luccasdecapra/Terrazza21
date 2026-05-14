@@ -756,6 +756,8 @@ function initFirebase() {
 
   // Trigger storico load as soon as Firebase is ready
   dbStorico.once('value', function() {
+    // Insert historical entries
+    setTimeout(seedVenerdi0804, 500);
     if(document.getElementById('page-chiusura') &&
        document.getElementById('page-chiusura').classList.contains('on')) {
       loadStorico();
@@ -1994,6 +1996,45 @@ function generatePDF(ts){
     document.body.appendChild(a);
     a.click();
     setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(blobUrl); }, 5000);
+  });
+}
+
+
+// ── SEED: Venerdì 08 aprile 2026 ─────────────────────────
+function seedVenerdi0804(){
+  if(!dbStorico) { setTimeout(seedVenerdi0804, 800); return; }
+  var SEED_KEY = 'td21_seed_20260408';
+  if(localStorage.getItem(SEED_KEY)) return;
+  var ts = 1775611800000;
+  dbStorico.child(String(ts)).once('value', function(snap){
+    if(snap.exists()){ localStorage.setItem(SEED_KEY,'1'); return; }
+    var entry = {
+      ts: ts,
+      date: 'venerdì 8 aprile 2026',
+      time: '03:30',
+      tavoli: 13,
+      bottiglie: 33,
+      data: {
+        '5':    {clients:[{num:1,bottles:[{spirit:'Tequila',brand:'Patrón XO Café',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '6':    {clients:[{num:1,bottles:[{spirit:'Gin',brand:"Hendrick's 70cl",qty:1},{spirit:'Whiskey',brand:'The Glenlivet 12yo',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '7':    {clients:[{num:1,bottles:[{spirit:'Champagne',brand:'Veuve Clicquot Yellow Label Magnum 1,5lt',qty:1},{spirit:'Vodka',brand:'Belvedere 70cl',qty:1},{spirit:'Champagne',brand:'Veuve Clicquot Yellow Label',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '8':    {clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '9':    {clients:[{num:1,bottles:[{spirit:'Tequila',brand:'Volcán de mi Tierra Blanco',qty:1},{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '10':   {clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1},{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'D1':   {clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1},{spirit:'Tequila',brand:'Volcán de mi Tierra Blanco',qty:1},{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'D3':   {clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:3}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'G6':   {clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:2},{spirit:'Prosecco',brand:'Cà del Bosco Cuvée Prestige',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'G5':   {clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:3},{spirit:'Tequila',brand:'Volcán de mi Tierra Blanco',qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'G1G2': {clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:2},{spirit:'Whiskey',brand:"Jack Daniel's",qty:3}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'L1S':  {clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1},{spirit:'Champagne',brand:'Ruinart Brut',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'L1D':  {clients:[{num:1,bottles:[{spirit:'Tequila',brand:'Patrón Reposado',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false}
+      }
+    };
+    dbStorico.child(String(ts)).set(entry).then(function(){
+      localStorage.setItem(SEED_KEY,'1');
+      console.log('Seed 08/04 OK');
+      if(document.getElementById('page-chiusura').classList.contains('on')) loadStorico();
+    }).catch(function(e){console.warn('Seed error:',e);});
   });
 }
 
