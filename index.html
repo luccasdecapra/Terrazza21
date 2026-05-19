@@ -659,7 +659,7 @@ var BRANDS={
   ],
   Gin:[
     'Malfy Originale 70cl','Malfy Limone 70cl','Malfy Pompelmo 70cl','Malfy Arancia 70cl',
-    'Bombay Sapphire Premier Cru 70cl','Monkey 47 50cl','Mare 70cl','Hendrick\'s 70cl','Tanqueray Ten 70cl','Nordés 70cl'
+    'Bombay Sapphire Premier Cru 70cl','Monkey 47 50cl','Mare 70cl','Hendrick\'s 70cl','Tanqueray Ten 70cl','Nordés 70cl','Suntory Roku 70cl'
   ],
   Rum:[
     'La Hechicera','Bumbu Original','Bumbu XO','Bumbu Cream',
@@ -744,7 +744,7 @@ var PRICES={
   'Absolut Elyx 70cl':300,'Beluga 70cl':400,'Cîroc 70cl':350,'Crystal Head 70cl':350,
   'Imperial Collection Uovo Fabergé Gold':6000,'Imperial Collection Uovo Fabergé Blu':6000,'Imperial Collection Uovo Fabergé Marmo Rosa':6000,
   'Malfy Originale 70cl':300,'Malfy Limone 70cl':300,'Malfy Pompelmo 70cl':300,'Malfy Arancia 70cl':300,
-  'Bombay Sapphire Premier Cru 70cl':350,'Monkey 47 50cl':350,'Mare 70cl':400,'Hendrick\'s 70cl':400,'Tanqueray Ten 70cl':400,'Nordés 70cl':400,
+  'Bombay Sapphire Premier Cru 70cl':350,'Monkey 47 50cl':350,'Mare 70cl':400,'Hendrick\'s 70cl':400,'Tanqueray Ten 70cl':400,'Nordés 70cl':400,'Suntory Roku 70cl':400,
   'La Hechicera':300,'Bumbu Original':300,'Bumbu XO':350,'Bumbu Cream':300,
   'Diplomatico':350,'Don Papa Baroko':350,'Pampero Aniversario':350,'Santa Teresa':350,
   'Zacapa 23 Solera':400,'Zacapa XO':600,'Havana Club 15yo':700,'Havana Club Cohiba':1200,'Caroni 1996 23yo':5000,
@@ -831,6 +831,7 @@ function initFirebase() {
     // Insert historical entries
     setTimeout(seedVenerdi0804, 500);
     setTimeout(seedSabato0905, 700);
+    setTimeout(seedVenerdi1505, 900);
     if(document.getElementById('page-chiusura') &&
        document.getElementById('page-chiusura').classList.contains('on')) {
       loadStorico();
@@ -2399,6 +2400,37 @@ function renderCustom(el,allItems){
   var spBars=topSp.length?'<div class="an-sec"><div class="an-sec-lbl">Bottiglie</div>'+
     topSp.map(function(k){return '<div class="an-bar-row"><span class="an-bar-lbl">'+k+'</span>'+barHtml(agg.spC[k],maxSp,'')+'<span class="an-bar-num">'+agg.spC[k]+'x</span></div>';}).join('')+'</div>':'';
   el.innerHTML=kpis+spBars;
+}
+
+
+// ── SEED: Venerdì 15 maggio 2026 ─────────────────────────
+function seedVenerdi1505(){
+  if(!dbStorico) { setTimeout(seedVenerdi1505, 800); return; }
+  var SEED_KEY = 'td21_seed_20260515';
+  if(localStorage.getItem(SEED_KEY)) return;
+  var ts = 1778808600000;
+  dbStorico.child(String(ts)).once('value', function(snap){
+    if(snap.exists()){ localStorage.setItem(SEED_KEY,'1'); return; }
+    var entry = {
+      ts: ts,
+      date: 'venerdì 15 maggio 2026',
+      time: '03:30',
+      tavoli: 5,
+      bottiglie: 10,
+      data: {
+        '4':    {clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Crystal Head 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '6':    {clients:[{num:1,bottles:[{spirit:'Champagne',brand:'Dom Pérignon 2017',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '8':    {clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'G5':   {clients:[{num:1,bottles:[{spirit:'Champagne',brand:'Dom Pérignon Luminous 2013',qty:3},{spirit:'Gin',brand:"Hendrick\'s 70cl",qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'G1G2': {clients:[{num:1,bottles:[{spirit:'Gin',brand:'Suntory Roku 70cl',qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false}
+      }
+    };
+    dbStorico.child(String(ts)).set(entry).then(function(){
+      localStorage.setItem(SEED_KEY,'1');
+      console.log('Seed 15/05 OK');
+      if(document.getElementById('page-chiusura').classList.contains('on')) loadStorico();
+    }).catch(function(e){console.warn('Seed error:',e);});
+  });
 }
 
 window.addEventListener('DOMContentLoaded',function(){
