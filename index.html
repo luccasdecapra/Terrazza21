@@ -832,6 +832,8 @@ function initFirebase() {
     setTimeout(seedVenerdi0804, 500);
     setTimeout(seedSabato0905, 700);
     setTimeout(seedVenerdi1505, 900);
+    setTimeout(seedSabato1605, 1100);
+    setTimeout(seedSabato2305, 1300);
     if(document.getElementById('page-chiusura') &&
        document.getElementById('page-chiusura').classList.contains('on')) {
       loadStorico();
@@ -2429,6 +2431,41 @@ function seedVenerdi1505(){
       localStorage.setItem(SEED_KEY,'1');
       console.log('Seed 15/05 OK');
       if(document.getElementById('page-chiusura').classList.contains('on')) loadStorico();
+    }).catch(function(e){console.warn('Seed error:',e);});
+  });
+}
+
+
+// ── SEED: Sabato 16 maggio 2026 ──────────────────────────
+function seedSabato1605(){
+  if(!dbStorico){setTimeout(seedSabato1605,800);return;}
+  var K='td21_seed_20260516';
+  if(localStorage.getItem(K))return;
+  var ts=1778895000000;
+  dbStorico.child(String(ts)).once('value',function(snap){
+    if(snap.exists()){localStorage.setItem(K,'1');return;}
+    dbStorico.child(String(ts)).set({
+      ts:ts,date:'sabato 16 maggio 2026',time:'03:30',tavoli:19,bottiglie:46,
+      data:{'E8':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:1},{spirit:'Champagne',brand:'Veuve Clicquot Yellow Label',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'L1S':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:1},{spirit:'Tequila',brand:'Patrón Silver',qty:1},{spirit:'Tequila',brand:'Casamigos Añejo',qty:1},{spirit:'Tequila',brand:'Patrón Reposado',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'G1G2':{clients:[{num:1,bottles:[{spirit:'Whiskey',brand:'Macallan 12yo',qty:3},{spirit:'Vino Rosso',brand:'GAJA Sito Moresco',qty:2},{spirit:'Champagne',brand:'Veuve Clicquot Yellow Label',qty:4},{spirit:'Champagne',brand:'Dom Pérignon 2017',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'4':{clients:[{num:1,bottles:[{spirit:'Gin',brand:"Hendrick's 70cl",qty:1},{spirit:'Whiskey',brand:'Johnnie Walker Black Label',qty:1},{spirit:'Champagne',brand:'Ruinart Brut',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'8':{clients:[{num:1,bottles:[{spirit:'Champagne',brand:'Veuve Clicquot Yellow Label',qty:1},{spirit:'Gin',brand:'Tanqueray Ten 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'E7':{clients:[{num:1,bottles:[{spirit:'Champagne',brand:'Veuve Clicquot Yellow Label',qty:1},{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1},{spirit:'Prosecco',brand:'Bottega Gold',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'51':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'52':{clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'D1':{clients:[{num:1,bottles:[{spirit:'Tequila',brand:'Volcán de mi Tierra Blanco',qty:1},{spirit:'Vodka',brand:'Belvedere 70cl',qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'G7':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:1},{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'55':{clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'54':{clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Limone 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'7':{clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'81':{clients:[{num:1,bottles:[{spirit:'Champagne',brand:'Veuve Clicquot Yellow Label',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'5':{clients:[{num:1,bottles:[{spirit:'Champagne',brand:'Veuve Clicquot Yellow Label',qty:1},{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'6':{clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'D5':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'E3':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Absolut Elyx 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'9':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:2},{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false}}
+    }).then(function(){localStorage.setItem(K,'1');console.log('Seed 16/05 OK — 46 bott 15600€');
+      if(document.getElementById('page-chiusura').classList.contains('on'))loadStorico();
+    }).catch(function(e){console.warn('Seed error:',e);});
+  });
+}
+
+// ── SEED: Sabato 23 maggio 2026 ──────────────────────────
+function seedSabato2305(){
+  if(!dbStorico){setTimeout(seedSabato2305,800);return;}
+  var K='td21_seed_20260523';
+  if(localStorage.getItem(K))return;
+  var ts=1779499800000;
+  dbStorico.child(String(ts)).once('value',function(snap){
+    if(snap.exists()){localStorage.setItem(K,'1');return;}
+    dbStorico.child(String(ts)).set({
+      ts:ts,date:'sabato 23 maggio 2026',time:'03:30',tavoli:22,bottiglie:40,
+      data:{'6':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'G7':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1},{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'9':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'J':{clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'7':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'G5':{clients:[{num:1,bottles:[{spirit:'Champagne',brand:'Krug Grand Cuvée 172ème',qty:1},{spirit:'Gin',brand:"Hendrick's 70cl",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'53':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'L1S':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:1},{spirit:'Rum',brand:'Bumbu Original',qty:1},{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'4':{clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1},{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'T1':{clients:[{num:1,bottles:[{spirit:'Champagne',brand:'Veuve Clicquot Yellow Label Magnum 1,5lt',qty:2},{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'E8':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'T3':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'G1G2':{clients:[{num:1,bottles:[{spirit:'Champagne',brand:'Moët & Chandon ICE Rosé',qty:5}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'D5':{clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Limone 70cl',qty:1},{spirit:'Gin',brand:'Malfy Arancia 70cl',qty:1},{spirit:'Gin',brand:'Malfy Pompelmo 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'55':{clients:[{num:1,bottles:[{spirit:'Vino Bianco',brand:'Louis Jadot Bourgogne Blanc 2022',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'L2S':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'2':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'8':{clients:[{num:1,bottles:[{spirit:'Tequila',brand:'Casamigos Reposado',qty:1},{spirit:'Gin',brand:'Malfy Originale 70cl',qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'D1':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'51':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'T4':{clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'E3':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false}}
+    }).then(function(){localStorage.setItem(K,'1');console.log('Seed 23/05 OK — 40 bott 15850€');
+      if(document.getElementById('page-chiusura').classList.contains('on'))loadStorico();
     }).catch(function(e){console.warn('Seed error:',e);});
   });
 }
