@@ -837,8 +837,10 @@ function initFirebase() {
   // Trigger storico load as soon as Firebase is ready
   dbStorico.once('value', function() {
     // Insert historical entries
-    setTimeout(seedVenerdi0804, 500);
-    setTimeout(seedSabato0905, 700);
+    // Prima migra le date esistenti, poi inserisce i seed
+    migrateStoricoDates();
+    setTimeout(seedVenerdi0804, 1500);
+    setTimeout(seedSabato0905, 1700);
     if(document.getElementById('page-chiusura') &&
        document.getElementById('page-chiusura').classList.contains('on')) {
       loadStorico();
@@ -967,9 +969,17 @@ function saveStorico(snapshot) {
   var ts = now.getTime();
   var days = ['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
   var months = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
-  var dateStr = days[now.getDay()] + ' ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
   var h = now.getHours(), m = now.getMinutes();
   var timeStr = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+  // REGOLA: il turno appartiene al giorno in cui è INIZIATA la serata.
+  // Se la chiusura avviene prima delle 18:00, la serata è iniziata la sera prima → -1 giorno.
+  var refDate = new Date(now);
+  if (h < 18) {
+    refDate.setDate(refDate.getDate() - 1);
+  }
+  var dateStr = days[refDate.getDay()] + ' ' + refDate.getDate() + ' ' + months[refDate.getMonth()] + ' ' + refDate.getFullYear();
+  // ts ancorato al giorno di riferimento (mantiene l'ora reale di chiusura)
+  ts = refDate.getTime();
 
   var activeTables = Object.keys(snapshot).filter(function(k) {
     return snapshot[k] && snapshot[k].clients && normalizeClients(snapshot[k].clients).some(function(c) {
@@ -2131,12 +2141,12 @@ function seedVenerdi0804(){
   if(!dbStorico) { setTimeout(seedVenerdi0804, 800); return; }
   var SEED_KEY = 'td21_seed_20260408';
   if(localStorage.getItem(SEED_KEY)) return;
-  var ts = 1775611800000;
+  var ts = 1775525400000;
   dbStorico.child(String(ts)).once('value', function(snap){
     if(snap.exists()){ localStorage.setItem(SEED_KEY,'1'); return; }
     var entry = {
       ts: ts,
-      date: 'venerdì 8 aprile 2026',
+      date: 'martedì 7 aprile 2026',
       time: '03:30',
       tavoli: 13,
       bottiglie: 33,
@@ -2170,12 +2180,12 @@ function seedSabato0905(){
   if(!dbStorico) { setTimeout(seedSabato0905, 800); return; }
   var SEED_KEY = 'td21_seed_20260509';
   if(localStorage.getItem(SEED_KEY)) return;
-  var ts = 1778290200000;
+  var ts = 1778203800000;
   dbStorico.child(String(ts)).once('value', function(snap){
     if(snap.exists()){ localStorage.setItem(SEED_KEY,'1'); return; }
     var entry = {
       ts: ts,
-      date: 'sabato 9 maggio 2026',
+      date: 'venerdì 8 maggio 2026',
       time: '03:30',
       tavoli: 23,
       bottiglie: 42,
@@ -2534,6 +2544,88 @@ document.addEventListener('touchstart', function(e){
     });
   }
 }, {passive:true});
+
+
+// ══════════════════════════════════════════════════════════
+// MIGRAZIONE: sposta la data dei turni al giorno di INIZIO serata
+// La chiusura fatta dopo mezzanotte appartiene alla notte precedente.
+// Regola: se l'ora della chiusura è < 18:00 (Milano) → il turno
+// è iniziato la sera prima → sottrai 1 giorno.
+// Se l'ora è >= 18:00 → il turno è della stessa sera → invariato.
+// Gira UNA SOLA VOLTA (flag su Firebase: meta/datesFixedV2).
+// ══════════════════════════════════════════════════════════
+var GIORNI = ['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
+var MESI = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+
+function tsToMilan(ts){
+  var now = new Date(ts);
+  var jan = new Date(now.getFullYear(),0,1), jul = new Date(now.getFullYear(),6,1);
+  var stdOff = Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
+  var isDST = now.getTimezoneOffset() < stdOff;
+  var off = isDST ? 2 : 1;
+  return new Date(ts + (now.getTimezoneOffset() + off*60)*60000);
+}
+
+function buildDateLabel(milanDate){
+  return GIORNI[milanDate.getDay()] + ' ' + milanDate.getDate() + ' ' + MESI[milanDate.getMonth()] + ' ' + milanDate.getFullYear();
+}
+
+function migrateStoricoDates(){
+  if(!dbStorico){ setTimeout(migrateStoricoDates, 1000); return; }
+  var metaRef = firebase.database().ref('meta/datesFixedV2');
+  metaRef.once('value', function(flagSnap){
+    if(flagSnap.val() === true){ return; } // già migrato
+
+    dbStorico.once('value', function(snap){
+      var updates = {};
+      var removes = [];
+      var processed = 0;
+      snap.forEach(function(child){
+        var item = child.val();
+        if(!item || !item.ts) return;
+        var milan = tsToMilan(item.ts);
+        var h = milan.getHours();
+        // Se chiusura tra 00:00 e 17:59 → turno iniziato la sera prima
+        if(h < 18){
+          var newTs = item.ts - 86400000; // -24h
+          var newMilan = tsToMilan(newTs);
+          var newItem = JSON.parse(JSON.stringify(item));
+          newItem.ts = newTs;
+          newItem.date = buildDateLabel(newMilan);
+          // time resta l'orario di chiusura reale
+          updates[String(newTs)] = newItem;
+          removes.push(String(item.ts));
+          processed++;
+        }
+        // Se h >= 18 → già corretto (serata stessa), lascia invariato
+      });
+
+      // Applica: prima scrive i nuovi, poi rimuove i vecchi
+      var ops = [];
+      Object.keys(updates).forEach(function(k){
+        ops.push(dbStorico.child(k).set(updates[k]));
+      });
+      Promise.all(ops).then(function(){
+        // Rimuove i vecchi (solo quelli il cui ts non è stato riusato)
+        var newKeys = Object.keys(updates);
+        var rmOps = [];
+        removes.forEach(function(oldK){
+          if(newKeys.indexOf(oldK) === -1){
+            rmOps.push(dbStorico.child(oldK).remove());
+          }
+        });
+        return Promise.all(rmOps);
+      }).then(function(){
+        metaRef.set(true);
+        console.log('Migrazione date completata: ' + processed + ' turni spostati al giorno precedente');
+        if(document.getElementById('page-chiusura') && document.getElementById('page-chiusura').classList.contains('on')){
+          loadStorico();
+          if(typeof renderAnalytics === 'function') renderAnalytics();
+        }
+      }).catch(function(e){ console.warn('Migrazione errore:', e); });
+    });
+  });
+}
 
 window.addEventListener('DOMContentLoaded',function(){
   // Mostra subito i dati locali (se esistono) senza attendere Firebase
