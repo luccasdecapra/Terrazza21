@@ -1482,6 +1482,18 @@ function renderSheet(){
     '<div style="width:26px;height:26px;border-radius:6px;border:2px solid '+(c.conto_aperto?'#00A86B':'var(--border2)')+';background:'+(c.conto_aperto?'#00A86B':'var(--bg3)')+';display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;flex-shrink:0;">'+(c.conto_aperto?'✓':'')+' </div>'+
     '<span style="flex:1;font-size:13px;font-weight:700;color:'+(c.conto_aperto?'#00A86B':'var(--dark)')+';">🟢 Conto Aperto</span>'+
     '</div>'+
+    '<div style="display:flex;align-items:center;gap:10px;background:var(--bg2);border:2px solid '+(c.voucher>0&&!c.pr?'#0041C2':'var(--border)')+';border-radius:var(--rsm);padding:10px 14px;margin-bottom:8px;">'+
+    '<div style="flex:1;">'+
+      '<div style="font-size:13px;font-weight:700;color:'+(c.voucher>0&&!c.pr?'#0041C2':'var(--dark)')+';">🎟 Voucher</div>'+
+      (c.voucher>0&&!c.pr?'<div id="voucher-rimane" style="font-size:11px;font-weight:800;color:'+(voucherRemaining(c)>0?'#0041C2':'#c62828')+';">'+
+        (voucherRemaining(c)>0?'Rimane: '+fmtEur(voucherRemaining(c)):'Voucher esaurito')+
+      '</div>':'')+
+    '</div>'+
+    '<div style="display:flex;align-items:center;gap:6px;">'+
+      '<input type="number" id="voucher-input" value="'+(c.voucher||0)+'" min="0" step="50" onchange="setVoucher(this.value)" style="width:84px;padding:7px 8px;background:var(--bg3);border:2px solid var(--border2);border-radius:6px;color:var(--dark);font-family:-apple-system,sans-serif;font-size:15px;font-weight:700;text-align:center;-webkit-appearance:none;outline:none;">'+
+      '<span style="font-size:13px;font-weight:700;color:var(--muted);">€</span>'+
+    '</div>'+
+    '</div>'+
     '<div class="slbl">Bottiglie</div>'+bottles+
     '<button class="badd" onclick="addB()">+ aggiungi bottiglia</button>'+
     '<div class="slbl" style="margin-top:16px">Ticket</div>'+
@@ -1536,6 +1548,7 @@ function chgPax(d){var c=getT(CT).clients[CC];c.pax=Math.max(0,(c.pax||0)+d);var
 function togExtra(id){var c=getT(CT).clients[CC];if(!c.extras)c.extras={};c.extras[id]=!c.extras[id];var btn=document.getElementById('ex-'+id);if(btn){btn.classList.toggle('on',!!c.extras[id]);btn.querySelector('.xtick').textContent=c.extras[id]?'✓ ':'';}saveToFirebase();}
 function swC(i){CC=i;renderSheet();}
 function togPR(){var c=getT(CT).clients[CC];c.pr=!c.pr;saveToFirebase();updateBtn(CT);renderSheet();}
+function setVoucher(val){var c=getT(CT).clients[CC];c.voucher=Math.max(0,parseInt(val)||0);saveToFirebase();updateBtn(CT);refTot();}
 function togContoAperto(){var c=getT(CT).clients[CC];c.conto_aperto=!c.conto_aperto;saveToFirebase();updateBtn(CT);renderSheet();}
 function chgAcquaPiccola(d){var c=getT(CT).clients[CC];c.acqua_piccola=Math.max(0,(c.acqua_piccola||0)+d);var el=document.getElementById('ap-val');if(el)el.textContent=c.acqua_piccola;saveToFirebase();refTot();}
 function togAcquaPay(){var c=getT(CT).clients[CC];c.acqua_piccola_pay=!c.acqua_piccola_pay;saveToFirebase();renderSheet();}
@@ -1596,6 +1609,21 @@ function addB(){
 }
 function remB(i){var c=getT(CT).clients[CC];c.bottles.splice(i,1);if(!c.bottles.length)c.bottles.push({spirit:'',brand:'',qty:1});saveToFirebase();renderSheet();}
 function cS(id,idx,d){var c=getT(CT).clients[CC];if(!c.softs)c.softs={};c.softs[id]=Math.max(0,(c.softs[id]||0)+d);var ve=document.getElementById('sv'+idx),ie=document.getElementById('sc'+idx);if(ve)ve.textContent=c.softs[id];if(ie){c.softs[id]>0?ie.classList.add('on'):ie.classList.remove('on');}saveToFirebase();refTot();}
+
+// Aggiorna il testo 'Rimane' del voucher senza ridisegnare tutta la scheda
+function updateVoucherDisplay(){
+  var c=getT(CT).clients[CC];
+  var vi=document.getElementById('voucher-rimane');
+  if(vi){
+    if(c.voucher>0&&!c.pr){
+      var rem=voucherRemaining(c);
+      vi.textContent=rem>0?'Rimane: '+fmtEur(rem):'Voucher esaurito';
+      vi.style.color=rem>0?'#0041C2':'#c62828';
+    } else {
+      vi.textContent='';
+    }
+  }
+}
 function refTot(){
   var c=getT(CT).clients[CC],tb=totB(c),al=allowedSofts(c),us=usedS(c),ov=us>al&&al>0;
   var has600=c.bottles.some(function(b){return b.spirit&&SUPER[b.spirit]&&PRICES[b.brand]>=600;});
@@ -1605,6 +1633,7 @@ function refTot(){
   if(a){a.textContent=al;if(mag)mag.style.display=has600?'block':'none';}
   if(u){u.textContent=us;ov?u.classList.add('over'):u.classList.remove('over');}
   updateBtn(CT);
+  if(typeof updateVoucherDisplay==='function')updateVoucherDisplay();
 }
 function askClear(){showCov('Pulire tavolo','Cancellare tutti i clienti e le bottiglie di questo tavolo?',function(){delete TD[CT];CC=0;saveToFirebase();saveLocal();closeSheet();});}
 
@@ -1631,6 +1660,12 @@ function totEur(c){
   var coronaEur=(!c.pr&&c.corona_pack>0)?c.corona_pack*300:0;
   return bottleEur+ticketEur+softEur+extrasEur+acquaEur+coronaEur;
 }
+// Voucher rimanente = voucher - consumazione (min 0). Scala con bottiglie/soft/extra.
+function voucherRemaining(c){
+  if(!c || !c.voucher || c.voucher<=0) return 0;
+  return Math.max(0, c.voucher - totEur(c));
+}
+
 // Helper: formatta € con separatore migliaia
 function fmtEur(v){
   if(!v) return '—';
