@@ -228,6 +228,27 @@ select:focus,input:focus{border-color:var(--gold2);}
 .pr-check-box{width:26px;height:26px;border-radius:6px;border:2px solid var(--border2);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:all .12s;}
 .pr-toggle-row.on .pr-check-box{background:#7B1FA2;border-color:#7B1FA2;color:#fff;}
 
+/* IMPOSTAZIONI DISPOSITIVO */
+.settings-ov{position:fixed;inset:0;z-index:9700;background:rgba(20,15,8,.6);display:none;align-items:center;justify-content:center;padding:20px;}
+.settings-ov.on{display:flex;}
+.settings-box{background:#fff;border-radius:18px;width:100%;max-width:380px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.settings-hdr{background:var(--dark);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;}
+.settings-title{font-size:15px;font-weight:800;color:var(--gold2);letter-spacing:.02em;}
+.settings-close{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;}
+.settings-body{padding:20px;}
+.settings-lbl{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+.settings-toggle-row{display:flex;align-items:center;gap:12px;margin-top:18px;padding:14px;background:var(--bg2);border:2px solid var(--border);border-radius:12px;cursor:pointer;transition:all .15s;}
+.settings-toggle-row.on{border-color:#2E7D32;background:#E8F5E9;}
+.settings-toggle-t{font-size:14px;font-weight:800;color:var(--dark);}
+.settings-toggle-d{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.35;}
+.settings-switch{width:50px;height:28px;border-radius:16px;background:#ccc;flex-shrink:0;position:relative;transition:background .2s;}
+.settings-toggle-row.on .settings-switch{background:#2E7D32;}
+.settings-switch-knob{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.settings-toggle-row.on .settings-switch-knob{left:25px;}
+.settings-id{margin-top:18px;font-size:10px;color:var(--muted);font-family:monospace;word-break:break-all;}
+.settings-foot{padding:0 20px 20px;}
+.settings-save{width:100%;padding:14px;background:var(--dark);color:var(--gold2);border:none;border-radius:12px;font-size:14px;font-weight:800;letter-spacing:.04em;cursor:pointer;}
+
 /* NOTIFICHE COMANDE (telefono sala) — stack in alto */
 .notif-stack{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9500;display:flex;flex-direction:column;align-items:center;gap:5px;padding:max(6px,env(safe-area-inset-top,6px)) 8px 8px;pointer-events:none;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .notif-stack:empty{display:none;}
@@ -604,6 +625,7 @@ select:focus,input:focus{border-color:var(--gold2);}
       <div style="margin-top:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
           <div class="sec-lbl" style="margin:0;">Storico Turni</div>
+          <button onclick="openMonthlyReport()" style="margin-left:auto;margin-right:8px;padding:6px 12px;background:var(--dark);color:var(--gold2);border:none;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:.05em;cursor:pointer;">📆 PDF Mensile</button>
           <button onclick="askClearStorico()" style="font-size:10px;font-weight:700;color:var(--red);background:none;border:1.5px solid rgba(192,57,43,.3);border-radius:20px;padding:4px 12px;cursor:pointer;letter-spacing:.06em;">Cancella storico</button>
         </div>
         <div id="storicoList"><div style="font-size:12px;color:var(--muted);text-align:center;padding:20px;">Caricamento...</div></div>
@@ -669,6 +691,46 @@ select:focus,input:focus{border-color:var(--gold2);}
       <div class="smod-close" onclick="closeStoricoModal()">✕</div>
     </div>
     <div class="smod-body" id="smodBody"></div>
+  </div>
+</div>
+
+<!-- RAPPORTO MENSILE -->
+<div class="pdf-ov" id="monthlyOv" onclick="closeMonthlyReport()">
+  <div class="pdf-box" onclick="event.stopPropagation()">
+    <div class="pdf-hdr">
+      <div class="pdf-title">📆 Rapporto Mensile</div>
+      <div class="pdf-close" onclick="closeMonthlyReport()">✕</div>
+    </div>
+    <div class="pdf-body" id="monthlyList"><div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">Caricamento...</div></div>
+  </div>
+</div>
+
+<!-- CONFIGURAZIONI DISPOSITIVO -->
+<button id="settingsCtrl" onclick="openSettings()" style="position:fixed;bottom:max(16px,env(safe-area-inset-bottom,16px));right:80px;z-index:9600;width:54px;height:54px;border-radius:50%;border:none;background:#1a1510;color:#FFD700;font-size:22px;box-shadow:0 4px 16px rgba(0,0,0,.35);cursor:pointer;display:flex;align-items:center;justify-content:center;">⚙️</button>
+
+<div class="settings-ov" id="settingsOv" onclick="closeSettings()">
+  <div class="settings-box" onclick="event.stopPropagation()">
+    <div class="settings-hdr">
+      <div class="settings-title">⚙️ Impostazioni Dispositivo</div>
+      <div class="settings-close" onclick="closeSettings()">✕</div>
+    </div>
+    <div class="settings-body">
+      <div class="settings-lbl">Nome di questo telefono</div>
+      <input type="text" id="deviceNameInput" placeholder="Es: Bar, Sala Bottiglie, Cassa..." maxlength="24" style="width:100%;padding:13px 14px;background:var(--bg3);border:2px solid var(--border2);border-radius:10px;color:var(--dark);font-family:-apple-system,sans-serif;font-size:16px;font-weight:600;outline:none;box-sizing:border-box;">
+
+      <div class="settings-toggle-row" id="salaToggleRow" onclick="toggleSalaMode()">
+        <div style="flex:1;">
+          <div class="settings-toggle-t">📥 Modalità Bottiglie</div>
+          <div class="settings-toggle-d">Questo telefono riceve le comande con suono e notifiche</div>
+        </div>
+        <div class="settings-switch" id="salaSwitch"><div class="settings-switch-knob"></div></div>
+      </div>
+
+      <div class="settings-id">ID dispositivo: <span id="deviceIdShow"></span></div>
+    </div>
+    <div class="settings-foot">
+      <button class="settings-save" onclick="saveSettings()">Salva</button>
+    </div>
   </div>
 </div>
 
@@ -904,6 +966,9 @@ var DEVICE_ID = (function(){
   return v;
 })();
 var _shownComande={};
+var DEVICE_NAME = localStorage.getItem('td21_device_name') || '';
+var SALA_MODE = (localStorage.getItem('td21_sala_mode')==='on');
+var _salaModeTmp = SALA_MODE;
 
 function initFirebase() {
   var firebaseConfig={
@@ -1018,7 +1083,7 @@ function normalizeClients(raw){
     var bottles=c.bottles;
     if(bottles&&!Array.isArray(bottles)) bottles=Object.keys(bottles).sort(function(a,b){return a-b;}).map(function(k){return bottles[k];});
     if(!bottles||!bottles.length) bottles=[{spirit:'',brand:'',qty:1}];
-    return {num:c.num||1, bottles:bottles, softs:c.softs||{}, softs_done:c.softs_done||{}, tickets:c.tickets||0, pax:c.pax||0, extras:c.extras||{}, pr:c.pr||false, voucher:c.voucher||0, conto_aperto:c.conto_aperto||false, acqua_piccola:c.acqua_piccola||0, acqua_piccola_pay:c.acqua_piccola_pay!==false, corona_pack:c.corona_pack||0};
+    return {num:c.num||1, bottles:bottles, softs:c.softs||{}, softs_done:c.softs_done||{}, softs_out:c.softs_out||{}, extras_out:c.extras_out||{}, tickets:c.tickets||0, pax:c.pax||0, extras:c.extras||{}, pr:c.pr||false, voucher:c.voucher||0, conto_aperto:c.conto_aperto||false, acqua_piccola:c.acqua_piccola||0, acqua_piccola_pay:c.acqua_piccola_pay!==false, corona_pack:c.corona_pack||0};
   });
 }
 function normalizeTD(raw){
@@ -1480,7 +1545,6 @@ function openSheet(id){
   if(CC<0) CC=0;
   document.getElementById('stitle').innerHTML='Tavolo <b>'+getLabel(id)+'</b>';
   renderSheet();
-  if(typeof syncComandaLive==='function') syncComandaLive(id, true);
   document.getElementById('sov').classList.add('on');
   document.getElementById('sheet').classList.add('on');
 }
@@ -1690,6 +1754,9 @@ function qB(i,d){
       });
       c.softs={};
     }
+    // Nova leva: resetta i marcatori 'uscito' (soft e extra ripartono da zero)
+    c.softs_out={};
+    c.extras_out={};
     // Nova unidade da garrafa = nova entrega pendente (volta a piscar)
     c.bottles[i].delivered=false;
     renderSheet();
@@ -3253,6 +3320,55 @@ function stopAlertSound(){
   _alertTimers=[];
 }
 
+// ── IMPOSTAZIONI DISPOSITIVO ──
+function openSettings(){
+  var ov=document.getElementById('settingsOv');
+  document.getElementById('deviceNameInput').value=DEVICE_NAME;
+  document.getElementById('deviceIdShow').textContent=DEVICE_ID;
+  _salaModeTmp=SALA_MODE;
+  document.getElementById('salaToggleRow').classList.toggle('on', _salaModeTmp);
+  ov.classList.add('on');
+}
+function closeSettings(){ document.getElementById('settingsOv').classList.remove('on'); }
+function toggleSalaMode(){
+  _salaModeTmp=!_salaModeTmp;
+  document.getElementById('salaToggleRow').classList.toggle('on', _salaModeTmp);
+}
+function saveSettings(){
+  DEVICE_NAME=(document.getElementById('deviceNameInput').value||'').trim();
+  SALA_MODE=_salaModeTmp;
+  localStorage.setItem('td21_device_name', DEVICE_NAME);
+  localStorage.setItem('td21_sala_mode', SALA_MODE?'on':'off');
+  closeSettings();
+  // Se ha disattivato la modalità Sala, rimuove le notifiche visibili
+  if(!SALA_MODE){
+    var stack=document.getElementById('notifStack');
+    if(stack) stack.innerHTML='';
+    _shownComande={};
+    stopAlertSound();
+  } else {
+    // Riattiva: ricarica le comande pendenti
+    reloadComandeNotifs();
+  }
+  showDragToast(SALA_MODE?'Modalità Bottiglie attiva 🍾':'Salvato ✓', 1800);
+}
+// Ricarica tutte le comande pendenti (quando si attiva la modalità Sala)
+function reloadComandeNotifs(){
+  if(!dbComande || !SALA_MODE) return;
+  var stack=document.getElementById('notifStack');
+  if(stack) stack.innerHTML='';
+  _shownComande={};
+  dbComande.orderByChild('ts').once('value', function(snap){
+    snap.forEach(function(child){
+      var c=child.val(); if(!c) return;
+      if(c.from===DEVICE_ID) return;
+      if(c.status==='done') return;
+      _shownComande[child.key]=true;
+      renderComandaNotif(child.key, c);
+    });
+  });
+}
+
 // Costruisce gli item pendenti di un tavolo (bottiglie non consegnate + soft leva attuale + extra + pax)
 function buildComandaItems(id){
   var t=TD[id];
@@ -3265,13 +3381,18 @@ function buildComandaItems(id){
     (c.bottles||[]).forEach(function(b){
       if(b.spirit&&b.brand&&b.delivered===false) bottleLines.push({q:parseInt(b.qty)||1, n:b.brand});
     });
+    // Soft pendenti = quantità attuale MENO quelli già usciti (softs_out)
+    var sOut=c.softs_out||{};
     Object.keys(c.softs||{}).forEach(function(sid){
-      var v=c.softs[sid]; if(!v||v<=0) return;
+      var pending=(c.softs[sid]||0)-(sOut[sid]||0);
+      if(pending<=0) return;
       var sd=SOFTS.find(function(s){return s.id===sid;});
-      softLines.push({q:v, n:sd?sd.n:sid});
+      softLines.push({q:pending, n:sd?sd.n:sid});
     });
+    // Extra non ancora usciti
+    var eOut=c.extras_out||{};
     Object.keys(c.extras||{}).forEach(function(eid){
-      if(c.extras[eid]&&EXTRA_NAMES[eid]) extraLines.push({q:1, n:EXTRA_NAMES[eid]});
+      if(c.extras[eid]&&!eOut[eid]&&EXTRA_NAMES[eid]) extraLines.push({q:1, n:EXTRA_NAMES[eid]});
     });
   });
   return {bottiglie:bottleLines, softs:softLines, extras:extraLines, pax:totPax};
@@ -3294,7 +3415,7 @@ function syncComandaLive(id, editing){
     var ex=snap.val();
     var ts=(ex&&ex.ts)?ex.ts:Date.now();
     var comanda={
-      tavolo:id, label:getLabel(id), ts:ts, from:DEVICE_ID,
+      tavolo:id, label:getLabel(id), ts:ts, from:DEVICE_ID, from_name:(DEVICE_NAME||''),
       status: editing?'live':'pending',
       pax: items?items.pax:0,
       bottiglie: items?items.bottiglie:[],
@@ -3311,6 +3432,7 @@ function startComandeListener(){
   dbComande.orderByChild('ts').on('child_added', function(snap){
     var c=snap.val(); if(!c) return;
     var key=snap.key;
+    if(!SALA_MODE) return; // solo i telefoni in Modalità Bottiglie ricevono
     if(c.from===DEVICE_ID) return; // non mostrare le proprie
     if(c.status==='done') return;
     if(_shownComande[key]) return;
@@ -3322,6 +3444,7 @@ function startComandeListener(){
   dbComande.orderByChild('ts').on('child_changed', function(snap){
     var c=snap.val(); if(!c) return;
     var key=snap.key;
+    if(!SALA_MODE) return; // solo Modalità Bottiglie
     if(c.from===DEVICE_ID) return;
     if(c.status==='done'){
       var el0=document.getElementById('notif-'+key);
@@ -3401,29 +3524,174 @@ function updateComandaNotif(key, c){
 
 function evadiComanda(key, tavolo){
   stopAlertSound();
-  // Segna le bottiglie pendenti della mesa come consegnate
+  // Segna come consegnati: bottiglie (delivered) + soft (softs_out) + extra (extras_out)
   if(db && tavolo){
     db.child(tavolo).once('value', function(snap){
       var t=snap.val();
       if(t&&t.clients){
         var cl=Array.isArray(t.clients)?t.clients:Object.keys(t.clients).map(function(x){return t.clients[x];});
         cl.forEach(function(c){
-          if(!c||!c.bottles) return;
-          var bl=Array.isArray(c.bottles)?c.bottles:Object.keys(c.bottles).map(function(x){return c.bottles[x];});
+          if(!c) return;
+          // Bottiglie
+          var bl=Array.isArray(c.bottles)?c.bottles:(c.bottles?Object.keys(c.bottles).map(function(x){return c.bottles[x];}):[]);
           bl.forEach(function(b){ if(b&&b.spirit&&b.brand&&b.delivered===false) b.delivered=true; });
           c.bottles=bl;
+          // Soft: segna tutti gli attuali come usciti
+          c.softs_out=c.softs_out||{};
+          Object.keys(c.softs||{}).forEach(function(sid){
+            if(c.softs[sid]>0) c.softs_out[sid]=c.softs[sid];
+          });
+          // Extra: segna gli attivi come usciti
+          c.extras_out=c.extras_out||{};
+          Object.keys(c.extras||{}).forEach(function(eid){
+            if(c.extras[eid]) c.extras_out[eid]=true;
+          });
         });
         t.clients=cl;
         db.child(tavolo).set(t).catch(function(e){console.warn(e);});
       }
     });
   }
-  // Rimuove la comanda dal Firebase
   if(dbComande){ dbComande.child(key).remove().catch(function(e){console.warn(e);}); }
   var el=document.getElementById('notif-'+key);
   if(el) el.remove();
 }
 
+
+
+// ══════════════════════════════════════════════════════════
+// RAPPORTO MENSILE PDF — con classifica bottiglie più vendute
+// ══════════════════════════════════════════════════════════
+function openMonthlyReport(){
+  var ov=document.getElementById('monthlyOv');
+  var list=document.getElementById('monthlyList');
+  if(!ov||!list) return;
+  ov.classList.add('on');
+  list.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">Caricamento...</div>';
+  if(!dbStorico){ list.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:12px;">Firebase non pronto.</div>'; return; }
+  dbStorico.orderByChild('ts').once('value', function(snap){
+    var all=[]; var seen={};
+    snap.forEach(function(ch){ var v=ch.val(); if(v&&v.ts&&!seen[v.ts]){seen[v.ts]=1; all.push(v);} });
+    if(!all.length){ list.innerHTML='<div style="padding:30px;text-align:center;color:var(--muted);font-size:12px;">Nessun turno nel storico.</div>'; return; }
+    var mg={};
+    all.forEach(function(item){
+      var d=tsToMilan(item.ts);
+      var key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+      if(!mg[key]) mg[key]={key:key,year:d.getFullYear(),month:d.getMonth(),label:fmtMonthName(d.getMonth())+' '+d.getFullYear(),items:[]};
+      mg[key].items.push(item);
+    });
+    var months=Object.keys(mg).sort(function(a,b){return b.localeCompare(a);}).map(function(k){return mg[k];});
+    var html='<div style="font-size:11px;color:var(--muted);margin-bottom:12px;padding:0 2px;">Seleziona il mese da esportare in PDF</div>';
+    months.forEach(function(m){
+      var agg=aggregateTurns(m.items);
+      html+='<div class="pdf-item" data-mk="'+m.key+'" style="cursor:pointer;"><div class="pdf-item-left"><div class="pdf-item-date">'+m.label+'</div><div class="pdf-item-sub">'+m.items.length+' serat'+(m.items.length===1?'a':'e')+'</div></div><div class="pdf-item-right"><div class="pdf-item-val">'+(agg.value>0?fmtEur(agg.value):'—')+'</div><div class="pdf-item-pill">\u{1F37E} '+agg.bottles+'</div></div><span style="color:var(--muted);font-size:18px;margin-left:4px;">\u203A</span></div>';
+    });
+    list.innerHTML=html;
+    list.querySelectorAll('.pdf-item[data-mk]').forEach(function(el){
+      el.addEventListener('click', function(){ generateMonthlyPDF(this.getAttribute('data-mk')); });
+    });
+  });
+}
+function closeMonthlyReport(){ var ov=document.getElementById('monthlyOv'); if(ov) ov.classList.remove('on'); }
+
+function generateMonthlyPDF(monthKey){
+  closeMonthlyReport();
+  if(!dbStorico) return;
+  dbStorico.orderByChild('ts').once('value', function(snap){
+    var all=[]; var seen={};
+    snap.forEach(function(ch){ var v=ch.val(); if(v&&v.ts&&!seen[v.ts]){seen[v.ts]=1; all.push(v);} });
+    var items=all.filter(function(it){ var d=tsToMilan(it.ts); return (d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'))===monthKey; }).sort(function(a,b){return a.ts-b.ts;});
+    if(!items.length) return;
+    var firstD=tsToMilan(items[0].ts);
+    var monthLabel=fmtMonthName(firstD.getMonth())+' '+firstD.getFullYear();
+
+    var totalVal=0, totalBot=0, totalTurni=items.length;
+    var brandC={}; // classifica per MARCA
+    var catC={};   // per categoria
+
+    items.forEach(function(item){
+      var std=item.data||{};
+      Object.keys(std).forEach(function(id){
+        var t=std[id]; if(!t||!t.clients) return;
+        normalizeClients(t.clients).forEach(function(c){
+          if(c.pr) return;
+          (c.bottles||[]).forEach(function(b){
+            if(!b.spirit||!b.brand) return;
+            var q=parseInt(b.qty)||0; totalBot+=q;
+            brandC[b.brand]=(brandC[b.brand]||0)+q;
+            catC[b.spirit]=(catC[b.spirit]||0)+q;
+            totalVal+=q*(PRICES[b.brand]||0);
+          });
+          if(c.tickets>0) totalVal+=300;
+          var al=allowedSofts(c);
+          var msf=(typeof mSofts==='function')?mSofts(c):(c.softs||{});
+          var us=Object.values(msf).reduce(function(s,v){return s+(v||0);},0);
+          totalVal+=Math.max(0,us-al)*10;
+          var EP={frutta:40,pizza:25,sandwich:27,patatine:10};
+          Object.keys(EP).forEach(function(k){if((c.extras||{})[k])totalVal+=EP[k];});
+          totalVal+=(c.acqua_piccola_pay&&c.acqua_piccola>0?c.acqua_piccola*5:0);
+          totalVal+=(c.corona_pack>0?c.corona_pack*300:0);
+        });
+      });
+    });
+    var avgT=totalTurni>0?Math.round(totalVal/totalTurni):0;
+
+    var topBrands=Object.keys(brandC).sort(function(a,b){return brandC[b]-brandC[a];});
+    var maxBrand=topBrands.length?brandC[topBrands[0]]:1;
+    var topCats=Object.keys(catC).sort(function(a,b){return catC[b]-catC[a];});
+    var maxCat=topCats.length?catC[topCats[0]]:1;
+
+    var medals=['\u{1F947}','\u{1F948}','\u{1F949}'];
+    var brandRows=topBrands.map(function(k,i){
+      var pct=Math.round(brandC[k]/maxBrand*100);
+      return '<tr><td style="padding:7px 10px;border-bottom:1px solid #e8e4dc;font-size:12px;font-weight:700;color:#1a1510;white-space:nowrap;">'+(i<3?medals[i]+' ':(i+1)+'. ')+k+'</td><td style="padding:7px 10px;border-bottom:1px solid #e8e4dc;width:160px;"><div style="background:#e8e4dc;border-radius:4px;height:11px;overflow:hidden;"><div style="width:'+pct+'%;height:11px;background:#9a7820;border-radius:4px;"></div></div></td><td style="padding:7px 10px;border-bottom:1px solid #e8e4dc;font-size:13px;font-weight:800;text-align:right;color:#9a7820;white-space:nowrap;">'+brandC[k]+'\u00D7</td></tr>';
+    }).join('');
+
+    var catRows=topCats.map(function(k){
+      var pct=Math.round(catC[k]/maxCat*100);
+      return '<tr><td style="padding:5px 10px;border-bottom:1px solid #e8e4dc;font-size:11px;color:#1a1510;">'+k+'</td><td style="padding:5px 10px;border-bottom:1px solid #e8e4dc;width:120px;"><div style="background:#e8e4dc;border-radius:3px;height:8px;overflow:hidden;"><div style="width:'+pct+'%;height:8px;background:#1565C0;border-radius:3px;"></div></div></td><td style="padding:5px 10px;border-bottom:1px solid #e8e4dc;font-size:11px;font-weight:800;text-align:right;color:#1565C0;">'+catC[k]+'\u00D7</td></tr>';
+    }).join('');
+
+    var nightRows=items.map(function(item){
+      var iVal=0,iBot=0; var std=item.data||{};
+      Object.keys(std).forEach(function(id){
+        var t=std[id]; if(!t||!t.clients) return;
+        normalizeClients(t.clients).forEach(function(c){
+          if(c.pr) return;
+          (c.bottles||[]).forEach(function(b){ if(b.spirit&&b.brand){var q=parseInt(b.qty)||0;iBot+=q;iVal+=q*(PRICES[b.brand]||0);} });
+        });
+      });
+      var d=tsToMilan(item.ts);
+      var gg=['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+      return '<tr><td style="padding:7px 10px;border-bottom:1px solid #e8e4dc;font-size:12px;font-weight:700;color:#1a1510;white-space:nowrap;">'+gg[d.getDay()]+' '+d.getDate()+'/'+String(d.getMonth()+1).padStart(2,'0')+'</td><td style="padding:7px 10px;border-bottom:1px solid #e8e4dc;font-size:12px;text-align:center;color:#5c5244;">'+(item.tavoli||0)+'</td><td style="padding:7px 10px;border-bottom:1px solid #e8e4dc;font-size:12px;text-align:center;color:#5c5244;">'+iBot+'</td><td style="padding:7px 10px;border-bottom:1px solid #e8e4dc;font-size:13px;font-weight:800;text-align:right;color:#9a7820;">'+fmtEur(iVal)+'</td></tr>';
+    }).join('');
+
+    var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Rapporto '+monthLabel+'</title><style>'+
+      '@page{size:A4 portrait;margin:16mm 14mm;}*{box-sizing:border-box;margin:0;padding:0;}'+
+      'body{font-family:-apple-system,Helvetica,Arial,sans-serif;color:#1a1510;font-size:13px;}'+
+      '@media print{.no-print{display:none!important;}body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'+
+      '.pb{font-size:9px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#9a7820;margin:0 0 8px;border-bottom:2px solid #c9a940;padding-bottom:4px;}'+
+      '.print-btn{position:fixed;top:14px;right:14px;padding:10px 20px;background:#1a1510;color:#c9a940;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;z-index:99;}'+
+      '</style></head><body>'+
+      '<button class="print-btn no-print" onclick="window.print()">\u{1F5A8} Stampa / PDF</button>'+
+      '<table width="100%" style="margin-bottom:16px;border-bottom:3px solid #1a1510;padding-bottom:12px;"><tr>'+
+        '<td><div style="font-size:10px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:#6a5c46;">Rapporto Mensile</div><div style="font-size:26px;font-weight:300;font-style:italic;">Terrazza <b style="font-weight:900;font-style:normal;">21</b></div><div style="font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:#8c7d6a;">Lounge Bar \u00B7 Milano</div></td>'+
+        '<td style="text-align:right;vertical-align:bottom;"><div style="font-size:21px;font-weight:800;color:#9a7820;">'+monthLabel+'</div><div style="font-size:10px;color:#8c7d6a;">'+totalTurni+' serate \u00B7 generato '+new Date().toLocaleDateString("it-IT")+'</div></td>'+
+      '</tr></table>'+
+      '<table width="100%" style="margin-bottom:18px;border-collapse:separate;border-spacing:7px;"><tr>'+
+        '<td style="background:#1a1510;border-radius:8px;padding:13px;text-align:center;width:33%;"><div style="font-size:23px;font-weight:900;color:#c9a940;">'+fmtEur(totalVal)+'</div><div style="font-size:8px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#6a5c46;margin-top:3px;">Fatturato</div></td>'+
+        '<td style="background:#f5f2ec;border:2px solid #cec8be;border-radius:8px;padding:13px;text-align:center;width:33%;"><div style="font-size:23px;font-weight:900;">'+totalBot+'</div><div style="font-size:8px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#8c7d6a;margin-top:3px;">Bottiglie</div></td>'+
+        '<td style="background:#f5f2ec;border:2px solid #cec8be;border-radius:8px;padding:13px;text-align:center;width:33%;"><div style="font-size:18px;font-weight:900;">'+fmtEur(avgT)+'</div><div style="font-size:8px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#8c7d6a;margin-top:3px;">Media/serata</div></td>'+
+      '</tr></table>'+
+      '<div style="margin-bottom:18px;"><div class="pb">\u{1F3C6} Bottiglie pi\u00F9 vendute (classifica)</div><table width="100%" style="border-collapse:collapse;">'+(brandRows||'<tr><td style="padding:10px;color:#8c7d6a;">Nessun dato</td></tr>')+'</table></div>'+
+      '<div style="margin-bottom:18px;"><div class="pb">Per categoria</div><table width="100%" style="border-collapse:collapse;">'+(catRows||'')+'</table></div>'+
+      '<div style="margin-bottom:18px;"><div class="pb">Dettaglio serate</div><table width="100%" style="border-collapse:collapse;"><thead><tr style="background:#1a1510;"><th style="padding:7px 10px;text-align:left;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#c9a940;">Data</th><th style="padding:7px 10px;text-align:center;font-size:9px;color:#c9a940;text-transform:uppercase;letter-spacing:.1em;">Tavoli</th><th style="padding:7px 10px;text-align:center;font-size:9px;color:#c9a940;text-transform:uppercase;letter-spacing:.1em;">Bott.</th><th style="padding:7px 10px;text-align:right;font-size:9px;color:#c9a940;text-transform:uppercase;letter-spacing:.1em;">Valore</th></tr></thead><tbody>'+nightRows+'</tbody></table></div>'+
+      '<div style="margin-top:20px;padding-top:10px;border-top:2px solid #cec8be;display:flex;justify-content:space-between;font-size:9px;color:#8c7d6a;"><span>Terrazza Duomo 21 \u00B7 Milano</span><span style="font-weight:700;">'+monthLabel+' \u00B7 '+totalBot+' bottiglie \u00B7 '+fmtEur(totalVal)+'</span></div>'+
+      '</body></html>';
+
+    showPdfOverlay(html);
+  });
+}
 
 window.addEventListener('DOMContentLoaded',function(){
   if(typeof updateSoundBtn==='function') updateSoundBtn();
