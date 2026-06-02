@@ -1057,7 +1057,14 @@ function saveToFirebase(){
   _saveTimer=setTimeout(function(){
     if(db) db.set(TD).catch(function(e){console.warn('Firebase write error:',e);});
   },400);
+  // Comanda in tempo reale: se il foglio è aperto, aggiorna la comanda del tavolo
+  clearTimeout(_comandaTimer);
+  _comandaTimer=setTimeout(function(){
+    var sheetOpen=document.getElementById('sov') && document.getElementById('sov').classList.contains('on');
+    if(sheetOpen && CT && typeof syncComandaLive==='function') syncComandaLive(CT, true);
+  },300);
 }
+var _comandaTimer=null;
 
 function saveStorico(snapshot) {
   var now = new Date();
@@ -1473,6 +1480,7 @@ function openSheet(id){
   if(CC<0) CC=0;
   document.getElementById('stitle').innerHTML='Tavolo <b>'+getLabel(id)+'</b>';
   renderSheet();
+  if(typeof syncComandaLive==='function') syncComandaLive(id, true);
   document.getElementById('sov').classList.add('on');
   document.getElementById('sheet').classList.add('on');
 }
@@ -1481,55 +1489,9 @@ var _uscitaTav=null;
 // Chiamata dal bottone Conferma: mostra il pop-up con cosa deve uscire (leva attuale non consegnata)
 function confermaSheet(){
   var id=CT;
-  var t=getT(id);
-  if(!t||!t.clients){ closeSheet(); return; }
-  var clients=normalizeClients(t.clients);
-
-  var bottleLines=[]; var softLines=[]; var extraLines=[];
-  var totPax=0;
-  var EXTRA_NAMES={shot:'Shot',sale:'Sale',limone:'Limone',arancia:'Arancia',sciropo:'Sciropo',frutta:'P. Frutta',pizza:'Pizza',sandwich:'Club Sandwich',patatine:'Patatine'};
-
-  clients.forEach(function(c){
-    totPax+=parseInt(c.pax)||0;
-    (c.bottles||[]).forEach(function(b){
-      if(b.spirit&&b.brand&&b.delivered===false){
-        bottleLines.push({q:parseInt(b.qty)||1, n:b.brand});
-      }
-    });
-    Object.keys(c.softs||{}).forEach(function(sid){
-      var v=c.softs[sid]; if(!v||v<=0) return;
-      var sd=SOFTS.find(function(s){return s.id===sid;});
-      softLines.push({q:v, n:sd?sd.n:sid});
-    });
-    Object.keys(c.extras||{}).forEach(function(eid){
-      if(c.extras[eid]&&EXTRA_NAMES[eid]) extraLines.push({q:1, n:EXTRA_NAMES[eid]});
-    });
-  });
-
-  // Niente di nuovo da portare → chiude
-  if(!bottleLines.length && !softLines.length && !extraLines.length){
-    closeSheet();
-    return;
-  }
-
-  // Invia la comanda al Firebase (apparirà sull'altro telefono)
-  if(dbComande){
-    var comanda={
-      tavolo:id,
-      label:getLabel(id),
-      ts:Date.now(),
-      from:DEVICE_ID,
-      status:'pending',
-      pax:totPax,
-      bottiglie:bottleLines,
-      softs:softLines,
-      extras:extraLines
-    };
-    dbComande.push(comanda).catch(function(e){console.warn('Comanda error:',e);});
-  }
-
-  // Feedback locale sul telefono che invia (no pop-up, solo toast)
-  showDragToast('Comanda inviata in sala ✓', 1800);
+  // Finalizza la comanda come 'pending' (resta in sala) e chiude
+  if(typeof syncComandaLive==='function' && id) syncComandaLive(id, false);
+  showDragToast('Comanda confermata ✓', 1500);
   closeSheet();
 }
 
@@ -1558,8 +1520,11 @@ function confermaUscita(){
 }
 
 function closeSheet(){
+  var closingId=CT;
   document.getElementById('sov').classList.remove('on');
   document.getElementById('sheet').classList.remove('on');
+  // Finalizza la comanda: se vuota rimuove, se ha pendenti resta come 'pending'
+  if(typeof syncComandaLive==='function' && closingId) syncComandaLive(closingId, false);
   buildMap();
 }
 
@@ -3288,21 +3253,87 @@ function stopAlertSound(){
   _alertTimers=[];
 }
 
+// Costruisce gli item pendenti di un tavolo (bottiglie non consegnate + soft leva attuale + extra + pax)
+function buildComandaItems(id){
+  var t=TD[id];
+  if(!t||!t.clients) return null;
+  var clients=normalizeClients(t.clients);
+  var bottleLines=[]; var softLines=[]; var extraLines=[]; var totPax=0;
+  var EXTRA_NAMES={shot:'Shot',sale:'Sale',limone:'Limone',arancia:'Arancia',sciropo:'Sciropo',frutta:'P. Frutta',pizza:'Pizza',sandwich:'Club Sandwich',patatine:'Patatine'};
+  clients.forEach(function(c){
+    totPax+=parseInt(c.pax)||0;
+    (c.bottles||[]).forEach(function(b){
+      if(b.spirit&&b.brand&&b.delivered===false) bottleLines.push({q:parseInt(b.qty)||1, n:b.brand});
+    });
+    Object.keys(c.softs||{}).forEach(function(sid){
+      var v=c.softs[sid]; if(!v||v<=0) return;
+      var sd=SOFTS.find(function(s){return s.id===sid;});
+      softLines.push({q:v, n:sd?sd.n:sid});
+    });
+    Object.keys(c.extras||{}).forEach(function(eid){
+      if(c.extras[eid]&&EXTRA_NAMES[eid]) extraLines.push({q:1, n:EXTRA_NAMES[eid]});
+    });
+  });
+  return {bottiglie:bottleLines, softs:softLines, extras:extraLines, pax:totPax};
+}
+
+// Sincronizza in tempo reale la comanda del tavolo verso il Firebase
+// editing=true → il tavolo è aperto in questo telefono (mostra 'In preparazione')
+function syncComandaLive(id, editing){
+  if(!dbComande || !id) return;
+  var items=buildComandaItems(id);
+  var hasItems = items && (items.bottiglie.length || items.softs.length || items.extras.length);
+  // Se il tavolo è chiuso e non ha pendenti → rimuove la comanda
+  if(!editing && !hasItems){
+    dbComande.child(id).remove().catch(function(){});
+    return;
+  }
+  // Se è in editing ma vuoto → mostra comunque (In preparazione)
+  // Recupera il ts esistente per non cambiare l'ordine
+  dbComande.child(id).once('value', function(snap){
+    var ex=snap.val();
+    var ts=(ex&&ex.ts)?ex.ts:Date.now();
+    var comanda={
+      tavolo:id, label:getLabel(id), ts:ts, from:DEVICE_ID,
+      status: editing?'live':'pending',
+      pax: items?items.pax:0,
+      bottiglie: items?items.bottiglie:[],
+      softs: items?items.softs:[],
+      extras: items?items.extras:[]
+    };
+    dbComande.child(id).set(comanda).catch(function(e){console.warn('syncComanda:',e);});
+  });
+}
+
 function startComandeListener(){
   if(!dbComande){ setTimeout(startComandeListener,800); return; }
-  // child_added: nuova comanda
+  // child_added: nuova comanda → mostra + suono (1 volta)
   dbComande.orderByChild('ts').on('child_added', function(snap){
     var c=snap.val(); if(!c) return;
     var key=snap.key;
-    // Non mostrare le comande inviate da QUESTO telefono
-    if(c.from===DEVICE_ID) return;
+    if(c.from===DEVICE_ID) return; // non mostrare le proprie
     if(c.status==='done') return;
     if(_shownComande[key]) return;
     _shownComande[key]=true;
     renderComandaNotif(key, c);
-    playAlertSound();
+    playAlertSound(); // suono solo all'apparizione
   });
-  // child_removed: comanda evasa altrove
+  // child_changed: aggiornamento in tempo reale (NO suono)
+  dbComande.orderByChild('ts').on('child_changed', function(snap){
+    var c=snap.val(); if(!c) return;
+    var key=snap.key;
+    if(c.from===DEVICE_ID) return;
+    if(c.status==='done'){
+      var el0=document.getElementById('notif-'+key);
+      if(el0) el0.remove();
+      delete _shownComande[key];
+      return;
+    }
+    // Se non era ancora mostrata (es. era 'from' nostro e ora no), mostra
+    if(!_shownComande[key]){ _shownComande[key]=true; renderComandaNotif(key,c); playAlertSound(); return; }
+    updateComandaNotif(key, c); // aggiorna senza suono
+  });
+  // child_removed
   dbComande.orderByChild('ts').on('child_removed', function(snap){
     var key=snap.key;
     delete _shownComande[key];
@@ -3311,40 +3342,63 @@ function startComandeListener(){
   });
 }
 
-function renderComandaNotif(key, c){
-  var stack=document.getElementById('notifStack');
-  if(!stack) return;
-  if(document.getElementById('notif-'+key)) return;
-  var t=new Date(c.ts||Date.now());
-  var hh=(t.getHours()<10?'0':'')+t.getHours()+':'+(t.getMinutes()<10?'0':'')+t.getMinutes();
+function comandaBodyHtml(c){
   var body='';
-  if(c.pax&&c.pax>0){
-    body+='<div class="notif-item" style="background:#fff7d6;border-color:#FFD700;"><div class="notif-qty">'+c.pax+'</div><div class="notif-name">👤 Persone al tavolo</div></div>';
-  }
+  var paxN=(c.pax!==undefined&&c.pax!==null)?c.pax:0;
+  body+='<div class="notif-item" style="background:#fff7d6;border-color:#FFD700;"><div class="notif-qty">'+paxN+'</div><div class="notif-name">\u{1F464} Persone al tavolo</div></div>';
+  var hasAny=false;
   if(c.bottiglie&&c.bottiglie.length){
-    body+='<div class="notif-sec">🍾 Bottiglie</div>';
+    hasAny=true;
+    body+='<div class="notif-sec">\u{1F37E} Bottiglie</div>';
     c.bottiglie.forEach(function(l){ body+='<div class="notif-item"><div class="notif-qty">'+l.q+'</div><div class="notif-name">'+l.n+'</div></div>'; });
   }
   if(c.softs&&c.softs.length){
-    body+='<div class="notif-sec">🥤 Soft Drinks</div>';
+    hasAny=true;
+    body+='<div class="notif-sec">\u{1F964} Soft Drinks</div>';
     c.softs.forEach(function(l){ body+='<div class="notif-item"><div class="notif-qty">'+l.q+'</div><div class="notif-name">'+l.n+'</div></div>'; });
   }
   if(c.extras&&c.extras.length){
-    body+='<div class="notif-sec">✨ Extra</div>';
+    hasAny=true;
+    body+='<div class="notif-sec">\u2728 Extra</div>';
     c.extras.forEach(function(l){ body+='<div class="notif-item"><div class="notif-qty">'+l.q+'</div><div class="notif-name">'+l.n+'</div></div>'; });
   }
+  if(!hasAny){
+    body+='<div style="text-align:center;padding:8px;font-size:11px;font-weight:700;color:#9a7820;font-style:italic;">\u23F3 In preparazione...</div>';
+  }
+  return body;
+}
+
+function renderComandaNotif(key, c){
+  var stack=document.getElementById('notifStack');
+  if(!stack) return;
+  if(document.getElementById('notif-'+key)) { updateComandaNotif(key,c); return; }
+  var t=new Date(c.ts||Date.now());
+  var hh=(t.getHours()<10?'0':'')+t.getHours()+':'+(t.getMinutes()<10?'0':'')+t.getMinutes();
+  var paxN=(c.pax!==undefined&&c.pax!==null)?c.pax:0;
+  var liveDot = (c.status==='live') ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#E53935;margin-right:4px;animation:blinkOrange 1s infinite;"></span>' : '';
   var card=document.createElement('div');
   card.className='notif-card';
   card.id='notif-'+key;
-  var paxBadge = (c.pax&&c.pax>0) ? '<span class="notif-pax">👤 '+c.pax+'</span>' : '';
   card.innerHTML=
-    '<div class="notif-hdr"><div class="notif-hdr-l"><span class="notif-hdr-tav">Tav '+(c.label||c.tavolo)+'</span>'+paxBadge+'</div><div class="notif-time">'+hh+'</div></div>'+
-    '<div class="notif-body">'+body+'</div>'+
-    '<div class="notif-foot"><button class="notif-btn" onclick="evadiComanda(\''+key+'\',\''+c.tavolo+'\')">✓ Bottiglia uscita</button></div>';
+    '<div class="notif-hdr"><div class="notif-hdr-l">'+liveDot+'<span class="notif-hdr-tav">Tav '+(c.label||c.tavolo)+'</span><span class="notif-pax">\u{1F464} '+paxN+'</span></div><div class="notif-time">'+hh+'</div></div>'+
+    '<div class="notif-body" id="notif-body-'+key+'">'+comandaBodyHtml(c)+'</div>'+
+    '<div class="notif-foot"><button class="notif-btn" onclick="evadiComanda(\''+key+'\',\''+c.tavolo+'\')">\u2713 Bottiglia uscita</button></div>';
   stack.appendChild(card);
 }
 
-// Sala marca come uscita: segna bottiglie consegnate + rimuove comanda (sparisce su tutti)
+// Aggiorna una notifica esistente senza ricrearla (no suono)
+function updateComandaNotif(key, c){
+  var card=document.getElementById('notif-'+key);
+  if(!card){ renderComandaNotif(key,c); return; }
+  var bodyEl=document.getElementById('notif-body-'+key);
+  if(bodyEl) bodyEl.innerHTML=comandaBodyHtml(c);
+  // aggiorna pax badge
+  var paxN=(c.pax!==undefined&&c.pax!==null)?c.pax:0;
+  var badge=card.querySelector('.notif-pax');
+  if(badge) badge.textContent='\u{1F464} '+paxN;
+}
+
+
 function evadiComanda(key, tavolo){
   stopAlertSound();
   // Segna le bottiglie pendenti della mesa come consegnate
