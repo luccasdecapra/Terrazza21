@@ -235,9 +235,9 @@ select:focus,input:focus{border-color:var(--gold2);}
 }
 .t.pending-bottle{
   animation:blinkOrange 1s ease-in-out infinite;
-  color:#5c4a00!important;
+  color:#000!important;
 }
-.t.pending-bottle .tlabel,.t.pending-bottle .tqty{color:#5c4a00!important;}
+.t.pending-bottle .tname,.t.pending-bottle .tname-sm,.t.pending-bottle .tinfo{color:#000!important;}
 /* Checkbox garrafa saiu */
 .bottle-out-row{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;border-radius:8px;background:var(--bg3);cursor:pointer;border:2px solid var(--border);transition:all .12s;}
 .bottle-out-row.done{background:#E8F5E9;border-color:#2E7D32;}
@@ -1549,7 +1549,29 @@ function chgTick(d){var c=getT(CT).clients[CC];c.tickets=Math.max(0,(c.tickets||
 function updB(i,f,v){var c=getT(CT).clients[CC];c.bottles[i][f]=f==='qty'?Math.max(1,parseInt(v)||1):v;if(f==='brand'){c.bottles[i].delivered=false;}saveToFirebase();refTot();if(f==='brand')renderSheet();updateBtn(CT);}
 // Marca/desmarca garrafa como saída (entregue)
 function togBottleOut(i){var c=getT(CT).clients[CC];if(!c.bottles[i])return;var cur=(c.bottles[i].delivered===false)?false:true;c.bottles[i].delivered=!cur;saveToFirebase();renderSheet();updateBtn(CT);}
-function qB(i,d){var c=getT(CT).clients[CC];c.bottles[i].qty=Math.max(1,(parseInt(c.bottles[i].qty)||1)+d);var el=document.getElementById('bq'+i);if(el)el.textContent=c.bottles[i].qty;if(d>0&&c.bottles[i].delivered){c.bottles[i].delivered=false;renderSheet();}saveToFirebase();refTot();updateBtn(CT);}
+function qB(i,d){
+  var c=getT(CT).clients[CC];
+  c.bottles[i].qty=Math.max(1,(parseInt(c.bottles[i].qty)||1)+d);
+  var el=document.getElementById('bq'+i);if(el)el.textContent=c.bottles[i].qty;
+  if(d>0){
+    // Aumentando: arquiva os soft da leva atual (vão p/ relatório) e zera contador visual
+    if(c.softs && Object.keys(c.softs).some(function(k){return c.softs[k]>0;})){
+      c.softs_done=c.softs_done||{};
+      Object.keys(c.softs).forEach(function(k){
+        if(c.softs[k]>0) c.softs_done[k]=(c.softs_done[k]||0)+c.softs[k];
+      });
+      c.softs={};
+    }
+    // Nova unidade da garrafa = nova entrega pendente (volta a piscar)
+    c.bottles[i].delivered=false;
+    renderSheet();
+  } else if(d<0){
+    // Diminuindo: zera apenas os soft visuais atuais (os arquivados permanecem no relatório)
+    c.softs={};
+    renderSheet();
+  }
+  saveToFirebase();refTot();updateBtn(CT);
+}
 // Soft drinks totali (leva attuale + archiviati). Usato nei calcoli/report live.
 function mSofts(c){
   var out={};
