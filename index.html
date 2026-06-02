@@ -228,6 +228,24 @@ select:focus,input:focus{border-color:var(--gold2);}
 .pr-check-box{width:26px;height:26px;border-radius:6px;border:2px solid var(--border2);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:all .12s;}
 .pr-toggle-row.on .pr-check-box{background:#7B1FA2;border-color:#7B1FA2;color:#fff;}
 
+/* POP-UP USCITA (cosa portare in sala) */
+.uscita-ov{position:fixed;inset:0;z-index:8000;background:rgba(20,15,8,.55);display:none;align-items:center;justify-content:center;padding:20px;}
+.uscita-ov.on{display:flex;}
+.uscita-box{background:#fff;border-radius:18px;width:100%;max-width:380px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.uscita-hdr{background:linear-gradient(135deg,#FFD700,#E6C200);padding:18px 20px;text-align:center;}
+.uscita-hdr-t{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:#5c4a00;}
+.uscita-hdr-tav{font-size:26px;font-weight:900;color:#1a1510;margin-top:2px;}
+.uscita-body{padding:18px 20px;overflow-y:auto;flex:1;}
+.uscita-sec-lbl{font-size:10px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:#9a7820;margin:14px 0 8px;}
+.uscita-sec-lbl:first-child{margin-top:0;}
+.uscita-item{display:flex;align-items:center;gap:10px;padding:11px 14px;background:#faf8f3;border:2px solid #ece6da;border-radius:10px;margin-bottom:7px;}
+.uscita-item-qty{min-width:34px;height:34px;border-radius:8px;background:#1a1510;color:#FFD700;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;flex-shrink:0;}
+.uscita-item-name{font-size:14px;font-weight:700;color:#1a1510;flex:1;}
+.uscita-empty{text-align:center;color:#8c7d6a;font-size:13px;padding:20px;}
+.uscita-foot{padding:16px 20px;padding-bottom:max(16px,env(safe-area-inset-bottom,16px));border-top:2px solid #ece6da;display:flex;gap:10px;}
+.uscita-btn-out{flex:1;padding:16px;background:#2E7D32;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:800;letter-spacing:.03em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+.uscita-btn-later{padding:16px 18px;background:#f0ede7;color:#5c5244;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;}
+
 /* PENDING BOTTLE — pisca laranja (garrafa não entregue) */
 @keyframes blinkOrange{
   0%,100%{background:#FFD700;border-color:#E6C200;box-shadow:0 0 0 0 rgba(255,215,0,.5);}
@@ -632,6 +650,21 @@ select:focus,input:focus{border-color:var(--gold2);}
       <div class="smod-close" onclick="closeStoricoModal()">✕</div>
     </div>
     <div class="smod-body" id="smodBody"></div>
+  </div>
+</div>
+
+<!-- POP-UP USCITA -->
+<div class="uscita-ov" id="uscitaOv">
+  <div class="uscita-box">
+    <div class="uscita-hdr">
+      <div class="uscita-hdr-t">Da portare in sala</div>
+      <div class="uscita-hdr-tav" id="uscitaTav">Tavolo</div>
+    </div>
+    <div class="uscita-body" id="uscitaBody"></div>
+    <div class="uscita-foot">
+      <button class="uscita-btn-later" onclick="closeUscita()">Dopo</button>
+      <button class="uscita-btn-out" onclick="confermaUscita()">✓ Bottiglia uscita</button>
+    </div>
   </div>
 </div>
 
@@ -1407,6 +1440,94 @@ function openSheet(id){
   document.getElementById('sov').classList.add('on');
   document.getElementById('sheet').classList.add('on');
 }
+var _uscitaTav=null;
+
+// Chiamata dal bottone Conferma: mostra il pop-up con cosa deve uscire (leva attuale non consegnata)
+function confermaSheet(){
+  var id=CT;
+  _uscitaTav=id;
+  var t=getT(id);
+  if(!t||!t.clients){ closeSheet(); return; }
+  var clients=normalizeClients(t.clients);
+
+  // Raccoglie bottiglie NON consegnate (delivered===false) + softs leva attuale + extras
+  var bottleLines=[]; var softLines=[]; var extraLines=[];
+  var EXTRA_NAMES={shot:'Shot',sale:'Sale',limone:'Limone',arancia:'Arancia',sciropo:'Sciropo',frutta:'P. Frutta',pizza:'Pizza',sandwich:'Club Sandwich',patatine:'Patatine'};
+
+  clients.forEach(function(c){
+    (c.bottles||[]).forEach(function(b){
+      if(b.spirit&&b.brand&&b.delivered===false){
+        bottleLines.push({q:parseInt(b.qty)||1, n:b.brand});
+      }
+    });
+    // Softs leva attuale (solo c.softs, non gli archiviati)
+    Object.keys(c.softs||{}).forEach(function(sid){
+      var v=c.softs[sid]; if(!v||v<=0) return;
+      var sd=SOFTS.find(function(s){return s.id===sid;});
+      softLines.push({q:v, n:sd?sd.n:sid});
+    });
+    // Extras attivi
+    Object.keys(c.extras||{}).forEach(function(eid){
+      if(c.extras[eid]&&EXTRA_NAMES[eid]) extraLines.push({q:1, n:EXTRA_NAMES[eid]});
+    });
+  });
+
+  // Se non c'è nulla da portare, chiude direttamente
+  if(!bottleLines.length && !softLines.length && !extraLines.length){
+    closeSheet();
+    return;
+  }
+
+  // Costruisce il contenuto
+  var html='';
+  if(bottleLines.length){
+    html+='<div class="uscita-sec-lbl">🍾 Bottiglie</div>';
+    bottleLines.forEach(function(l){
+      html+='<div class="uscita-item"><div class="uscita-item-qty">'+l.q+'</div><div class="uscita-item-name">'+l.n+'</div></div>';
+    });
+  }
+  if(softLines.length){
+    html+='<div class="uscita-sec-lbl">🥤 Soft Drinks</div>';
+    softLines.forEach(function(l){
+      html+='<div class="uscita-item"><div class="uscita-item-qty">'+l.q+'</div><div class="uscita-item-name">'+l.n+'</div></div>';
+    });
+  }
+  if(extraLines.length){
+    html+='<div class="uscita-sec-lbl">✨ Extra</div>';
+    extraLines.forEach(function(l){
+      html+='<div class="uscita-item"><div class="uscita-item-qty">'+l.q+'</div><div class="uscita-item-name">'+l.n+'</div></div>';
+    });
+  }
+
+  document.getElementById('uscitaTav').textContent='Tavolo '+getLabel(id);
+  document.getElementById('uscitaBody').innerHTML=html;
+  document.getElementById('uscitaOv').classList.add('on');
+}
+
+function closeUscita(){
+  document.getElementById('uscitaOv').classList.remove('on');
+  _uscitaTav=null;
+  closeSheet();
+}
+
+// Marca tutte le bottiglie della leva come consegnate e chiude
+function confermaUscita(){
+  var id=_uscitaTav||CT;
+  var t=getT(id);
+  if(t&&t.clients){
+    t.clients.forEach(function(c){
+      (c.bottles||[]).forEach(function(b){
+        if(b.spirit&&b.brand&&b.delivered===false) b.delivered=true;
+      });
+    });
+    saveToFirebase();
+    updateBtn(id);
+  }
+  document.getElementById('uscitaOv').classList.remove('on');
+  _uscitaTav=null;
+  closeSheet();
+}
+
 function closeSheet(){
   document.getElementById('sov').classList.remove('on');
   document.getElementById('sheet').classList.remove('on');
@@ -1537,7 +1658,7 @@ function renderSheet(){
     '<div class="slbl" style="margin-top:16px">Note</div>'+
     '<textarea class="nota-field" id="nota-field" placeholder="Osservazioni, VIP, compleanno..." onchange="saveNota(this.value)">'+notaVal+'</textarea>';
   document.getElementById('sfoot').innerHTML=
-    '<button class="bconf" onclick="closeSheet()">Conferma</button>'+
+    '<button class="bconf" onclick="confermaSheet()">Conferma</button>'+
     '<button class="'+(isRsv?'bconf':'bdanger')+'" style="'+(isRsv?'background:#1565C0;color:#fff;border:none;':'border-color:#1565C0;color:#1565C0;')+'" onclick="togReserva()">'+
       (isRsv?'🔵 Rimuovi RSV':'🔵 Riserva')+
     '</button>'+
