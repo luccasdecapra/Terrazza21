@@ -229,21 +229,24 @@ select:focus,input:focus{border-color:var(--gold2);}
 .pr-toggle-row.on .pr-check-box{background:#7B1FA2;border-color:#7B1FA2;color:#fff;}
 
 /* NOTIFICHE COMANDE (telefono sala) — stack in alto */
-.notif-stack{position:fixed;top:max(10px,env(safe-area-inset-top,10px));left:0;right:0;z-index:9500;display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 12px;pointer-events:none;}
-.notif-card{pointer-events:auto;background:#fff;border-radius:16px;width:100%;max-width:420px;box-shadow:0 12px 40px rgba(0,0,0,.3);overflow:hidden;border:3px solid #FFD700;animation:notifIn .35s cubic-bezier(.2,.9,.3,1.2);}
-@keyframes notifIn{from{transform:translateY(-30px) scale(.92);opacity:0;}to{transform:translateY(0) scale(1);opacity:1;}}
-.notif-hdr{background:linear-gradient(135deg,#FFD700,#E6C200);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;}
-.notif-hdr-t{font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#5c4a00;}
-.notif-hdr-tav{font-size:22px;font-weight:900;color:#1a1510;}
-.notif-time{font-size:10px;font-weight:700;color:#5c4a00;opacity:.8;}
-.notif-body{padding:12px 16px;max-height:40vh;overflow-y:auto;}
-.notif-sec{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#9a7820;margin:8px 0 5px;}
+.notif-stack{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9500;display:flex;flex-direction:column;align-items:center;gap:7px;padding:max(8px,env(safe-area-inset-top,8px)) 10px 10px;pointer-events:none;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.notif-stack:empty{display:none;}
+.notif-card{pointer-events:auto;background:#fff;border-radius:12px;width:100%;max-width:430px;box-shadow:0 6px 22px rgba(0,0,0,.28);overflow:hidden;border:2.5px solid #FFD700;animation:notifIn .3s cubic-bezier(.2,.9,.3,1.2);flex-shrink:0;}
+@keyframes notifIn{from{transform:translateY(-20px) scale(.94);opacity:0;}to{transform:translateY(0) scale(1);opacity:1;}}
+.notif-hdr{background:linear-gradient(135deg,#FFD700,#E6C200);padding:6px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.notif-hdr-l{display:flex;align-items:baseline;gap:8px;}
+.notif-hdr-t{font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#5c4a00;}
+.notif-hdr-tav{font-size:17px;font-weight:900;color:#1a1510;}
+.notif-pax{font-size:11px;font-weight:800;color:#5c4a00;background:rgba(26,21,16,.12);padding:2px 8px;border-radius:10px;}
+.notif-time{font-size:9px;font-weight:700;color:#5c4a00;opacity:.8;}
+.notif-body{padding:7px 12px;}
+.notif-sec{font-size:8px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9a7820;margin:5px 0 3px;}
 .notif-sec:first-child{margin-top:0;}
-.notif-item{display:flex;align-items:center;gap:9px;padding:8px 11px;background:#faf8f3;border:1.5px solid #ece6da;border-radius:9px;margin-bottom:5px;}
-.notif-qty{min-width:30px;height:30px;border-radius:7px;background:#1a1510;color:#FFD700;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;flex-shrink:0;}
-.notif-name{font-size:13px;font-weight:700;color:#1a1510;flex:1;}
-.notif-foot{padding:12px 16px;padding-bottom:14px;border-top:2px solid #ece6da;}
-.notif-btn{width:100%;padding:14px;background:#2E7D32;color:#fff;border:none;border-radius:11px;font-size:14px;font-weight:800;letter-spacing:.03em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+.notif-item{display:flex;align-items:center;gap:7px;padding:4px 8px;background:#faf8f3;border:1px solid #ece6da;border-radius:7px;margin-bottom:3px;}
+.notif-qty{min-width:24px;height:24px;border-radius:6px;background:#1a1510;color:#FFD700;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;flex-shrink:0;}
+.notif-name{font-size:12px;font-weight:700;color:#1a1510;flex:1;}
+.notif-foot{padding:7px 12px 9px;border-top:1.5px solid #ece6da;}
+.notif-btn{width:100%;padding:9px;background:#2E7D32;color:#fff;border:none;border-radius:9px;font-size:12px;font-weight:800;letter-spacing:.02em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
 
 /* POP-UP USCITA (cosa portare in sala) */
 .uscita-ov{position:fixed;inset:0;z-index:8000;background:rgba(20,15,8,.55);display:none;align-items:center;justify-content:center;padding:20px;}
@@ -1481,9 +1484,11 @@ function confermaSheet(){
   var clients=normalizeClients(t.clients);
 
   var bottleLines=[]; var softLines=[]; var extraLines=[];
+  var totPax=0;
   var EXTRA_NAMES={shot:'Shot',sale:'Sale',limone:'Limone',arancia:'Arancia',sciropo:'Sciropo',frutta:'P. Frutta',pizza:'Pizza',sandwich:'Club Sandwich',patatine:'Patatine'};
 
   clients.forEach(function(c){
+    totPax+=parseInt(c.pax)||0;
     (c.bottles||[]).forEach(function(b){
       if(b.spirit&&b.brand&&b.delivered===false){
         bottleLines.push({q:parseInt(b.qty)||1, n:b.brand});
@@ -1513,6 +1518,7 @@ function confermaSheet(){
       ts:Date.now(),
       from:DEVICE_ID,
       status:'pending',
+      pax:totPax,
       bottiglie:bottleLines,
       softs:softLines,
       extras:extraLines
@@ -3232,7 +3238,7 @@ function stopAlertSound(){
 function startComandeListener(){
   if(!dbComande){ setTimeout(startComandeListener,800); return; }
   // child_added: nuova comanda
-  dbComande.on('child_added', function(snap){
+  dbComande.orderByChild('ts').on('child_added', function(snap){
     var c=snap.val(); if(!c) return;
     var key=snap.key;
     // Non mostrare le comande inviate da QUESTO telefono
@@ -3244,7 +3250,7 @@ function startComandeListener(){
     playAlertSound();
   });
   // child_removed: comanda evasa altrove
-  dbComande.on('child_removed', function(snap){
+  dbComande.orderByChild('ts').on('child_removed', function(snap){
     var key=snap.key;
     delete _shownComande[key];
     var el=document.getElementById('notif-'+key);
@@ -3274,8 +3280,9 @@ function renderComandaNotif(key, c){
   var card=document.createElement('div');
   card.className='notif-card';
   card.id='notif-'+key;
+  var paxBadge = (c.pax&&c.pax>0) ? '<span class="notif-pax">👤 '+c.pax+'</span>' : '';
   card.innerHTML=
-    '<div class="notif-hdr"><div><div class="notif-hdr-t">Da portare in sala</div><div class="notif-hdr-tav">Tavolo '+(c.label||c.tavolo)+'</div></div><div class="notif-time">'+hh+'</div></div>'+
+    '<div class="notif-hdr"><div class="notif-hdr-l"><span class="notif-hdr-tav">Tav '+(c.label||c.tavolo)+'</span>'+paxBadge+'</div><div class="notif-time">'+hh+'</div></div>'+
     '<div class="notif-body">'+body+'</div>'+
     '<div class="notif-foot"><button class="notif-btn" onclick="evadiComanda(\''+key+'\',\''+c.tavolo+'\')">✓ Bottiglia uscita</button></div>';
   stack.appendChild(card);
