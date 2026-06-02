@@ -228,6 +228,23 @@ select:focus,input:focus{border-color:var(--gold2);}
 .pr-check-box{width:26px;height:26px;border-radius:6px;border:2px solid var(--border2);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:all .12s;}
 .pr-toggle-row.on .pr-check-box{background:#7B1FA2;border-color:#7B1FA2;color:#fff;}
 
+/* NOTIFICHE COMANDE (telefono sala) — stack in alto */
+.notif-stack{position:fixed;top:max(10px,env(safe-area-inset-top,10px));left:0;right:0;z-index:9500;display:flex;flex-direction:column;align-items:center;gap:10px;padding:10px 12px;pointer-events:none;}
+.notif-card{pointer-events:auto;background:#fff;border-radius:16px;width:100%;max-width:420px;box-shadow:0 12px 40px rgba(0,0,0,.3);overflow:hidden;border:3px solid #FFD700;animation:notifIn .35s cubic-bezier(.2,.9,.3,1.2);}
+@keyframes notifIn{from{transform:translateY(-30px) scale(.92);opacity:0;}to{transform:translateY(0) scale(1);opacity:1;}}
+.notif-hdr{background:linear-gradient(135deg,#FFD700,#E6C200);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;}
+.notif-hdr-t{font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#5c4a00;}
+.notif-hdr-tav{font-size:22px;font-weight:900;color:#1a1510;}
+.notif-time{font-size:10px;font-weight:700;color:#5c4a00;opacity:.8;}
+.notif-body{padding:12px 16px;max-height:40vh;overflow-y:auto;}
+.notif-sec{font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#9a7820;margin:8px 0 5px;}
+.notif-sec:first-child{margin-top:0;}
+.notif-item{display:flex;align-items:center;gap:9px;padding:8px 11px;background:#faf8f3;border:1.5px solid #ece6da;border-radius:9px;margin-bottom:5px;}
+.notif-qty{min-width:30px;height:30px;border-radius:7px;background:#1a1510;color:#FFD700;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;flex-shrink:0;}
+.notif-name{font-size:13px;font-weight:700;color:#1a1510;flex:1;}
+.notif-foot{padding:12px 16px;padding-bottom:14px;border-top:2px solid #ece6da;}
+.notif-btn{width:100%;padding:14px;background:#2E7D32;color:#fff;border:none;border-radius:11px;font-size:14px;font-weight:800;letter-spacing:.03em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;}
+
 /* POP-UP USCITA (cosa portare in sala) */
 .uscita-ov{position:fixed;inset:0;z-index:8000;background:rgba(20,15,8,.55);display:none;align-items:center;justify-content:center;padding:20px;}
 .uscita-ov.on{display:flex;}
@@ -653,6 +670,9 @@ select:focus,input:focus{border-color:var(--gold2);}
   </div>
 </div>
 
+<!-- NOTIFICHE COMANDE (sala) -->
+<div class="notif-stack" id="notifStack"></div>
+
 <!-- POP-UP USCITA -->
 <div class="uscita-ov" id="uscitaOv">
   <div class="uscita-box">
@@ -870,6 +890,15 @@ var TD={},CT=null,CC=0,CCB=null;
 
 var db = null;
 var dbStorico = null;
+var dbComande = null;
+// ID univoco di questo dispositivo (per non mostrare le proprie comande)
+var DEVICE_ID = (function(){
+  var k='td21_device_id';
+  var v=localStorage.getItem(k);
+  if(!v){ v='dev_'+Date.now()+'_'+Math.random().toString(36).slice(2,8); localStorage.setItem(k,v); }
+  return v;
+})();
+var _shownComande={};
 
 function initFirebase() {
   var firebaseConfig={
@@ -884,6 +913,8 @@ function initFirebase() {
   firebase.initializeApp(firebaseConfig);
   db = firebase.database().ref('tavoli');
   dbStorico = firebase.database().ref('storico');
+  dbComande = firebase.database().ref('comande');
+  startComandeListener();
 
   // Trigger storico load as soon as Firebase is ready
   dbStorico.once('value', function() {
@@ -1445,12 +1476,10 @@ var _uscitaTav=null;
 // Chiamata dal bottone Conferma: mostra il pop-up con cosa deve uscire (leva attuale non consegnata)
 function confermaSheet(){
   var id=CT;
-  _uscitaTav=id;
   var t=getT(id);
   if(!t||!t.clients){ closeSheet(); return; }
   var clients=normalizeClients(t.clients);
 
-  // Raccoglie bottiglie NON consegnate (delivered===false) + softs leva attuale + extras
   var bottleLines=[]; var softLines=[]; var extraLines=[];
   var EXTRA_NAMES={shot:'Shot',sale:'Sale',limone:'Limone',arancia:'Arancia',sciropo:'Sciropo',frutta:'P. Frutta',pizza:'Pizza',sandwich:'Club Sandwich',patatine:'Patatine'};
 
@@ -1460,48 +1489,40 @@ function confermaSheet(){
         bottleLines.push({q:parseInt(b.qty)||1, n:b.brand});
       }
     });
-    // Softs leva attuale (solo c.softs, non gli archiviati)
     Object.keys(c.softs||{}).forEach(function(sid){
       var v=c.softs[sid]; if(!v||v<=0) return;
       var sd=SOFTS.find(function(s){return s.id===sid;});
       softLines.push({q:v, n:sd?sd.n:sid});
     });
-    // Extras attivi
     Object.keys(c.extras||{}).forEach(function(eid){
       if(c.extras[eid]&&EXTRA_NAMES[eid]) extraLines.push({q:1, n:EXTRA_NAMES[eid]});
     });
   });
 
-  // Se non c'è nulla da portare, chiude direttamente
+  // Niente di nuovo da portare → chiude
   if(!bottleLines.length && !softLines.length && !extraLines.length){
     closeSheet();
     return;
   }
 
-  // Costruisce il contenuto
-  var html='';
-  if(bottleLines.length){
-    html+='<div class="uscita-sec-lbl">🍾 Bottiglie</div>';
-    bottleLines.forEach(function(l){
-      html+='<div class="uscita-item"><div class="uscita-item-qty">'+l.q+'</div><div class="uscita-item-name">'+l.n+'</div></div>';
-    });
-  }
-  if(softLines.length){
-    html+='<div class="uscita-sec-lbl">🥤 Soft Drinks</div>';
-    softLines.forEach(function(l){
-      html+='<div class="uscita-item"><div class="uscita-item-qty">'+l.q+'</div><div class="uscita-item-name">'+l.n+'</div></div>';
-    });
-  }
-  if(extraLines.length){
-    html+='<div class="uscita-sec-lbl">✨ Extra</div>';
-    extraLines.forEach(function(l){
-      html+='<div class="uscita-item"><div class="uscita-item-qty">'+l.q+'</div><div class="uscita-item-name">'+l.n+'</div></div>';
-    });
+  // Invia la comanda al Firebase (apparirà sull'altro telefono)
+  if(dbComande){
+    var comanda={
+      tavolo:id,
+      label:getLabel(id),
+      ts:Date.now(),
+      from:DEVICE_ID,
+      status:'pending',
+      bottiglie:bottleLines,
+      softs:softLines,
+      extras:extraLines
+    };
+    dbComande.push(comanda).catch(function(e){console.warn('Comanda error:',e);});
   }
 
-  document.getElementById('uscitaTav').textContent='Tavolo '+getLabel(id);
-  document.getElementById('uscitaBody').innerHTML=html;
-  document.getElementById('uscitaOv').classList.add('on');
+  // Feedback locale sul telefono che invia (no pop-up, solo toast)
+  showDragToast('Comanda inviata in sala ✓', 1800);
+  closeSheet();
 }
 
 function closeUscita(){
@@ -3159,6 +3180,133 @@ function seedDomenica3105(){
     }).catch(function(e){console.warn('Seed error:',e);});
   });
 }
+
+
+// ══════════════════════════════════════════════════════════
+// SISTEMA COMANDE — notifiche tra telefoni via Firebase
+// ══════════════════════════════════════════════════════════
+var _audioCtx=null;
+function getAudioCtx(){
+  if(!_audioCtx){
+    try{ _audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; }
+  }
+  if(_audioCtx.state==='suspended'){ try{_audioCtx.resume();}catch(e){} }
+  return _audioCtx;
+}
+
+// Suono di allerta continuo per ~5 secondi (pattern bip ripetuto)
+var _alertTimers=[];
+function playAlertSound(){
+  stopAlertSound();
+  var ctx=getAudioCtx();
+  if(!ctx) return;
+  var dur=5; // secondi
+  var beepEvery=0.6; // un bip ogni 0.6s
+  var n=Math.floor(dur/beepEvery);
+  for(var i=0;i<n;i++){
+    (function(t){
+      var id=setTimeout(function(){
+        try{
+          var o=ctx.createOscillator();
+          var g=ctx.createGain();
+          o.type='sine';
+          o.frequency.value=880;
+          g.gain.setValueAtTime(0.0001,ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.4,ctx.currentTime+0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.35);
+          o.connect(g); g.connect(ctx.destination);
+          o.start();
+          o.stop(ctx.currentTime+0.4);
+        }catch(e){}
+      }, t*beepEvery*1000);
+      _alertTimers.push(id);
+    })(i);
+  }
+  if(navigator.vibrate) navigator.vibrate([200,100,200,100,200,100,200]);
+}
+function stopAlertSound(){
+  _alertTimers.forEach(function(id){clearTimeout(id);});
+  _alertTimers=[];
+}
+
+function startComandeListener(){
+  if(!dbComande){ setTimeout(startComandeListener,800); return; }
+  // child_added: nuova comanda
+  dbComande.on('child_added', function(snap){
+    var c=snap.val(); if(!c) return;
+    var key=snap.key;
+    // Non mostrare le comande inviate da QUESTO telefono
+    if(c.from===DEVICE_ID) return;
+    if(c.status==='done') return;
+    if(_shownComande[key]) return;
+    _shownComande[key]=true;
+    renderComandaNotif(key, c);
+    playAlertSound();
+  });
+  // child_removed: comanda evasa altrove
+  dbComande.on('child_removed', function(snap){
+    var key=snap.key;
+    delete _shownComande[key];
+    var el=document.getElementById('notif-'+key);
+    if(el) el.remove();
+  });
+}
+
+function renderComandaNotif(key, c){
+  var stack=document.getElementById('notifStack');
+  if(!stack) return;
+  if(document.getElementById('notif-'+key)) return;
+  var t=new Date(c.ts||Date.now());
+  var hh=(t.getHours()<10?'0':'')+t.getHours()+':'+(t.getMinutes()<10?'0':'')+t.getMinutes();
+  var body='';
+  if(c.bottiglie&&c.bottiglie.length){
+    body+='<div class="notif-sec">🍾 Bottiglie</div>';
+    c.bottiglie.forEach(function(l){ body+='<div class="notif-item"><div class="notif-qty">'+l.q+'</div><div class="notif-name">'+l.n+'</div></div>'; });
+  }
+  if(c.softs&&c.softs.length){
+    body+='<div class="notif-sec">🥤 Soft Drinks</div>';
+    c.softs.forEach(function(l){ body+='<div class="notif-item"><div class="notif-qty">'+l.q+'</div><div class="notif-name">'+l.n+'</div></div>'; });
+  }
+  if(c.extras&&c.extras.length){
+    body+='<div class="notif-sec">✨ Extra</div>';
+    c.extras.forEach(function(l){ body+='<div class="notif-item"><div class="notif-qty">'+l.q+'</div><div class="notif-name">'+l.n+'</div></div>'; });
+  }
+  var card=document.createElement('div');
+  card.className='notif-card';
+  card.id='notif-'+key;
+  card.innerHTML=
+    '<div class="notif-hdr"><div><div class="notif-hdr-t">Da portare in sala</div><div class="notif-hdr-tav">Tavolo '+(c.label||c.tavolo)+'</div></div><div class="notif-time">'+hh+'</div></div>'+
+    '<div class="notif-body">'+body+'</div>'+
+    '<div class="notif-foot"><button class="notif-btn" onclick="evadiComanda(\''+key+'\',\''+c.tavolo+'\')">✓ Bottiglia uscita</button></div>';
+  stack.appendChild(card);
+}
+
+// Sala marca come uscita: segna bottiglie consegnate + rimuove comanda (sparisce su tutti)
+function evadiComanda(key, tavolo){
+  stopAlertSound();
+  // Segna le bottiglie pendenti della mesa come consegnate
+  if(db && tavolo){
+    db.child(tavolo).once('value', function(snap){
+      var t=snap.val();
+      if(t&&t.clients){
+        var cl=Array.isArray(t.clients)?t.clients:Object.keys(t.clients).map(function(x){return t.clients[x];});
+        cl.forEach(function(c){
+          if(!c||!c.bottles) return;
+          var bl=Array.isArray(c.bottles)?c.bottles:Object.keys(c.bottles).map(function(x){return c.bottles[x];});
+          bl.forEach(function(b){ if(b&&b.spirit&&b.brand&&b.delivered===false) b.delivered=true; });
+          c.bottles=bl;
+        });
+        t.clients=cl;
+        db.child(tavolo).set(t).catch(function(e){console.warn(e);});
+      }
+    });
+  }
+  // Rimuove la comanda dal Firebase
+  if(dbComande){ dbComande.child(key).remove().catch(function(e){console.warn(e);}); }
+  var el=document.getElementById('notif-'+key);
+  if(el) el.remove();
+}
+
 
 window.addEventListener('DOMContentLoaded',function(){
   // Mostra subito i dati locali (se esistono) senza attendere Firebase
