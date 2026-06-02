@@ -229,24 +229,23 @@ select:focus,input:focus{border-color:var(--gold2);}
 .pr-toggle-row.on .pr-check-box{background:#7B1FA2;border-color:#7B1FA2;color:#fff;}
 
 /* NOTIFICHE COMANDE (telefono sala) — stack in alto */
-.notif-stack{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9500;display:flex;flex-direction:column;align-items:center;gap:7px;padding:max(8px,env(safe-area-inset-top,8px)) 10px 10px;pointer-events:none;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.notif-stack{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9500;display:flex;flex-direction:column;align-items:center;gap:5px;padding:max(6px,env(safe-area-inset-top,6px)) 8px 8px;pointer-events:none;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .notif-stack:empty{display:none;}
-.notif-card{pointer-events:auto;background:#fff;border-radius:12px;width:100%;max-width:430px;box-shadow:0 6px 22px rgba(0,0,0,.28);overflow:hidden;border:2.5px solid #FFD700;animation:notifIn .3s cubic-bezier(.2,.9,.3,1.2);flex-shrink:0;}
-@keyframes notifIn{from{transform:translateY(-20px) scale(.94);opacity:0;}to{transform:translateY(0) scale(1);opacity:1;}}
-.notif-hdr{background:linear-gradient(135deg,#FFD700,#E6C200);padding:6px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
-.notif-hdr-l{display:flex;align-items:baseline;gap:8px;}
-.notif-hdr-t{font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#5c4a00;}
-.notif-hdr-tav{font-size:17px;font-weight:900;color:#1a1510;}
-.notif-pax{font-size:11px;font-weight:800;color:#5c4a00;background:rgba(26,21,16,.12);padding:2px 8px;border-radius:10px;}
-.notif-time{font-size:9px;font-weight:700;color:#5c4a00;opacity:.8;}
-.notif-body{padding:7px 12px;}
-.notif-sec{font-size:8px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9a7820;margin:5px 0 3px;}
+.notif-card{pointer-events:auto;background:#fff;border-radius:10px;width:100%;max-width:430px;box-shadow:0 4px 16px rgba(0,0,0,.25);overflow:hidden;border:2px solid #FFD700;animation:notifIn .28s cubic-bezier(.2,.9,.3,1.2);flex-shrink:0;}
+@keyframes notifIn{from{transform:translateY(-16px) scale(.95);opacity:0;}to{transform:translateY(0) scale(1);opacity:1;}}
+.notif-hdr{background:linear-gradient(135deg,#FFD700,#E6C200);padding:4px 10px;display:flex;align-items:center;justify-content:space-between;gap:6px;}
+.notif-hdr-l{display:flex;align-items:baseline;gap:7px;}
+.notif-hdr-tav{font-size:15px;font-weight:900;color:#1a1510;}
+.notif-pax{font-size:10px;font-weight:800;color:#5c4a00;background:rgba(26,21,16,.14);padding:1px 7px;border-radius:9px;}
+.notif-time{font-size:8px;font-weight:700;color:#5c4a00;opacity:.8;}
+.notif-body{padding:5px 10px;}
+.notif-sec{font-size:7px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#9a7820;margin:4px 0 2px;}
 .notif-sec:first-child{margin-top:0;}
-.notif-item{display:flex;align-items:center;gap:7px;padding:4px 8px;background:#faf8f3;border:1px solid #ece6da;border-radius:7px;margin-bottom:3px;}
-.notif-qty{min-width:24px;height:24px;border-radius:6px;background:#1a1510;color:#FFD700;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;flex-shrink:0;}
-.notif-name{font-size:12px;font-weight:700;color:#1a1510;flex:1;}
-.notif-foot{padding:7px 12px 9px;border-top:1.5px solid #ece6da;}
-.notif-btn{width:100%;padding:9px;background:#2E7D32;color:#fff;border:none;border-radius:9px;font-size:12px;font-weight:800;letter-spacing:.02em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+.notif-item{display:flex;align-items:center;gap:6px;padding:3px 7px;background:#faf8f3;border:1px solid #ece6da;border-radius:6px;margin-bottom:2px;}
+.notif-qty{min-width:20px;height:20px;border-radius:5px;background:#1a1510;color:#FFD700;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0;}
+.notif-name{font-size:11px;font-weight:700;color:#1a1510;flex:1;}
+.notif-foot{padding:5px 10px 7px;border-top:1px solid #ece6da;}
+.notif-btn{width:100%;padding:7px;background:#2E7D32;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:800;letter-spacing:.02em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;}
 
 /* POP-UP USCITA (cosa portare in sala) */
 .uscita-ov{position:fixed;inset:0;z-index:8000;background:rgba(20,15,8,.55);display:none;align-items:center;justify-content:center;padding:20px;}
@@ -672,6 +671,9 @@ select:focus,input:focus{border-color:var(--gold2);}
     <div class="smod-body" id="smodBody"></div>
   </div>
 </div>
+
+<!-- CONTROLLO SUONO (sala) -->
+<button id="soundCtrl" onclick="toggleSound()" style="position:fixed;bottom:max(16px,env(safe-area-inset-bottom,16px));right:16px;z-index:9600;width:54px;height:54px;border-radius:50%;border:none;background:#1a1510;color:#FFD700;font-size:22px;box-shadow:0 4px 16px rgba(0,0,0,.35);cursor:pointer;display:flex;align-items:center;justify-content:center;">🔕</button>
 
 <!-- NOTIFICHE COMANDE (sala) -->
 <div class="notif-stack" id="notifStack"></div>
@@ -3192,17 +3194,68 @@ function seedDomenica3105(){
 // SISTEMA COMANDE — notifiche tra telefoni via Firebase
 // ══════════════════════════════════════════════════════════
 var _audioCtx=null;
+var _soundEnabled=(localStorage.getItem('td21_sound')!=='off');
+var _audioUnlocked=false;
+
 function getAudioCtx(){
   if(!_audioCtx){
     try{ _audioCtx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; }
   }
-  if(_audioCtx.state==='suspended'){ try{_audioCtx.resume();}catch(e){} }
+  if(_audioCtx && _audioCtx.state==='suspended'){ try{_audioCtx.resume();}catch(e){} }
   return _audioCtx;
+}
+
+// Sblocca l'audio al primo tocco (richiesto da iOS/Safari)
+function unlockAudio(){
+  if(_audioUnlocked) return;
+  var ctx=getAudioCtx();
+  if(!ctx) return;
+  try{
+    var o=ctx.createOscillator(); var g=ctx.createGain();
+    g.gain.value=0.0001; o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime+0.05);
+    _audioUnlocked=true;
+  }catch(e){}
+}
+document.addEventListener('touchstart', unlockAudio, {once:false, passive:true});
+document.addEventListener('click', unlockAudio, {once:false, passive:true});
+
+function updateSoundBtn(){
+  var b=document.getElementById('soundCtrl');
+  if(b){ b.textContent=_soundEnabled?'🔔':'🔕'; b.style.background=_soundEnabled?'#2E7D32':'#1a1510'; }
+}
+
+function toggleSound(){
+  _soundEnabled=!_soundEnabled;
+  localStorage.setItem('td21_sound', _soundEnabled?'on':'off');
+  unlockAudio();
+  updateSoundBtn();
+  if(_soundEnabled){
+    // Suona un bip di test per confermare che l'audio funziona
+    playTestBeep();
+  } else {
+    stopAlertSound();
+  }
+}
+
+function playTestBeep(){
+  var ctx=getAudioCtx();
+  if(!ctx) return;
+  try{
+    var o=ctx.createOscillator(); var g=ctx.createGain();
+    o.type='sine'; o.frequency.value=880;
+    g.gain.setValueAtTime(0.0001,ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.4,ctx.currentTime+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.3);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(); o.stop(ctx.currentTime+0.35);
+  }catch(e){}
 }
 
 // Suono di allerta continuo per ~5 secondi (pattern bip ripetuto)
 var _alertTimers=[];
 function playAlertSound(){
+  if(!_soundEnabled) return;
   stopAlertSound();
   var ctx=getAudioCtx();
   if(!ctx) return;
@@ -3265,6 +3318,9 @@ function renderComandaNotif(key, c){
   var t=new Date(c.ts||Date.now());
   var hh=(t.getHours()<10?'0':'')+t.getHours()+':'+(t.getMinutes()<10?'0':'')+t.getMinutes();
   var body='';
+  if(c.pax&&c.pax>0){
+    body+='<div class="notif-item" style="background:#fff7d6;border-color:#FFD700;"><div class="notif-qty">'+c.pax+'</div><div class="notif-name">👤 Persone al tavolo</div></div>';
+  }
   if(c.bottiglie&&c.bottiglie.length){
     body+='<div class="notif-sec">🍾 Bottiglie</div>';
     c.bottiglie.forEach(function(l){ body+='<div class="notif-item"><div class="notif-qty">'+l.q+'</div><div class="notif-name">'+l.n+'</div></div>'; });
@@ -3316,6 +3372,7 @@ function evadiComanda(key, tavolo){
 
 
 window.addEventListener('DOMContentLoaded',function(){
+  if(typeof updateSoundBtn==='function') updateSoundBtn();
   // Mostra subito i dati locali (se esistono) senza attendere Firebase
   initLogin();
   var hd=document.getElementById('hDate');
