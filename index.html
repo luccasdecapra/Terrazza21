@@ -228,6 +228,24 @@ select:focus,input:focus{border-color:var(--gold2);}
 .pr-check-box{width:26px;height:26px;border-radius:6px;border:2px solid var(--border2);background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;transition:all .12s;}
 .pr-toggle-row.on .pr-check-box{background:#7B1FA2;border-color:#7B1FA2;color:#fff;}
 
+/* PENDING BOTTLE — pisca laranja (garrafa não entregue) */
+@keyframes blinkOrange{
+  0%,100%{background:#FFD700;border-color:#E6C200;box-shadow:0 0 0 0 rgba(255,215,0,.5);}
+  50%{background:#FFE74D;border-color:#FFD700;box-shadow:0 0 12px 3px rgba(255,215,0,.7);}
+}
+.t.pending-bottle{
+  animation:blinkOrange 1s ease-in-out infinite;
+  color:#5c4a00!important;
+}
+.t.pending-bottle .tlabel,.t.pending-bottle .tqty{color:#5c4a00!important;}
+/* Checkbox garrafa saiu */
+.bottle-out-row{display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;border-radius:8px;background:var(--bg3);cursor:pointer;border:2px solid var(--border);transition:all .12s;}
+.bottle-out-row.done{background:#E8F5E9;border-color:#2E7D32;}
+.bottle-out-check{width:22px;height:22px;border-radius:6px;border:2px solid var(--muted);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-weight:900;color:#fff;background:var(--bg);transition:all .12s;}
+.bottle-out-row.done .bottle-out-check{background:#2E7D32;border-color:#2E7D32;}
+.bottle-out-lbl{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.03em;}
+.bottle-out-row.done .bottle-out-lbl{color:#2E7D32;}
+
 /* DRAG TO TRANSFER */
 .t.drag-source{opacity:.45;transform:scale(.94);border-style:dashed!important;}
 .t.drag-over{border-color:#c9a940!important;border-width:3px!important;background:rgba(201,169,64,.13)!important;transform:scale(1.06);}
@@ -839,8 +857,16 @@ function initFirebase() {
     // Insert historical entries
     // Prima migra le date esistenti, poi inserisce i seed
     migrateStoricoDates();
-    setTimeout(seedVenerdi0804, 1500);
-    setTimeout(seedSabato0905, 1700);
+    setTimeout(correctSpecificDates, 2500);
+    setTimeout(correctDatesV5, 4000);
+    setTimeout(seedVenerdi0804, 5500);
+    setTimeout(seedSabato0905, 5700);
+    setTimeout(seedVenerdi2905, 5900);
+    setTimeout(seedSabato3005, 6100);
+    setTimeout(seedDomenica3105, 6300);
+    setTimeout(seedVenerdi2905, 1900);
+    setTimeout(seedSabato3005, 2100);
+    setTimeout(fixSpecificDatesV1, 2400);
     if(document.getElementById('page-chiusura') &&
        document.getElementById('page-chiusura').classList.contains('on')) {
       loadStorico();
@@ -923,7 +949,7 @@ function normalizeClients(raw){
     var bottles=c.bottles;
     if(bottles&&!Array.isArray(bottles)) bottles=Object.keys(bottles).sort(function(a,b){return a-b;}).map(function(k){return bottles[k];});
     if(!bottles||!bottles.length) bottles=[{spirit:'',brand:'',qty:1}];
-    return {num:c.num||1, bottles:bottles, softs:c.softs||{}, tickets:c.tickets||0, pax:c.pax||0, extras:c.extras||{}, pr:c.pr||false, voucher:c.voucher||0, conto_aperto:c.conto_aperto||false, acqua_piccola:c.acqua_piccola||0, acqua_piccola_pay:c.acqua_piccola_pay!==false, corona_pack:c.corona_pack||0};
+    return {num:c.num||1, bottles:bottles, softs:c.softs||{}, softs_done:c.softs_done||{}, tickets:c.tickets||0, pax:c.pax||0, extras:c.extras||{}, pr:c.pr||false, voucher:c.voucher||0, conto_aperto:c.conto_aperto||false, acqua_piccola:c.acqua_piccola||0, acqua_piccola_pay:c.acqua_piccola_pay!==false, corona_pack:c.corona_pack||0};
   });
 }
 function normalizeTD(raw){
@@ -990,6 +1016,24 @@ function saveStorico(snapshot) {
   activeTables.forEach(function(id) {
     normalizeClients(snapshot[id].clients).forEach(function(c) { totalBottles += totB(c); });
   });
+
+  // Consolida i soft archiviati (softs_done) dentro softs prima di salvare lo storico
+  try{
+    Object.keys(snapshot).forEach(function(k){
+      var t=snapshot[k];
+      if(!t||!t.clients) return;
+      var cl=Array.isArray(t.clients)?t.clients:Object.keys(t.clients).map(function(x){return t.clients[x];});
+      cl.forEach(function(c){
+        if(c&&c.softs_done){
+          c.softs=c.softs||{};
+          Object.keys(c.softs_done).forEach(function(sid){
+            if(c.softs_done[sid]>0) c.softs[sid]=(c.softs[sid]||0)+c.softs_done[sid];
+          });
+          delete c.softs_done;
+        }
+      });
+    });
+  }catch(e){console.warn('consolidate softs error',e);}
 
   var entry = {
     date: dateStr,
@@ -1185,7 +1229,7 @@ function updateBtn(id){
   var isReserva=TD[id]&&TD[id].reserva&&!occupied&&!hasPrevData;
   var lastC=null;try{lastC=TD[id]&&TD[id].clients&&TD[id].clients.length>0?TD[id].clients[TD[id].clients.length-1]:null;}catch(e){}
   var isPRbtn=lastC&&lastC.pr&&(totB(lastC)>0||lastC.tickets>0);
-  el.classList.remove('act','multi','reserva','pr-active','voucher-active','conto-aperto');
+  el.classList.remove('act','multi','reserva','pr-active','voucher-active','conto-aperto','pending-bottle');
   var prb2=el.querySelector('.pr-badge');if(prb2)prb2.remove();
   var prb=el.querySelector('.pr-badge');if(prb)prb.remove();
 
@@ -1195,7 +1239,23 @@ function updateBtn(id){
   var vSpent = hasVoucher?totEur(activeC):0;
   var vDone = hasVoucher&&vSpent>=activeC.voucher;
 
-  if(hasCA){
+  // Garrafa pendente: qualsiasi bottiglia con spirit+brand ma non ancora consegnata
+  var hasPendingBottle=false;
+  try{
+    if(TD[id]&&TD[id].clients){
+      TD[id].clients.forEach(function(c){
+        if(c.pr) return; // PR offerta non conta? la consegna serve comunque — manteniamo il blink anche per PR
+        (c.bottles||[]).forEach(function(b){
+          if(b.spirit&&b.brand&&b.delivered===false) hasPendingBottle=true;
+        });
+      });
+    }
+  }catch(e){}
+
+  if(hasPendingBottle){
+    // Pisca laranja: ha priorità visiva (c'è qualcosa da portare in sala)
+    el.classList.add('pending-bottle');
+  } else if(hasCA){
     el.classList.add('conto-aperto');
   } else if(hasVoucher&&!vDone){
     el.classList.add('voucher-active');
@@ -1378,7 +1438,11 @@ function renderSheet(){
     } else {
       brandField='<input type="text" placeholder="Marca" value="'+(b.brand||'')+'" oninput="updB('+i+',\'brand\',this.value)" style="flex:1"/>';
     }
-    bottles+='<div class="bcard"><div class="br1"><select style="flex:1" onchange="updBSpirit('+i+',this.value)">'+opts+'</select><button class="bdel" onclick="remB('+i+')">✕</button></div><div class="br2">'+brandField+'<div class="qctrl"><button onclick="qB('+i+',-1)">−</button><span id="bq'+i+'">'+(b.qty||1)+'</span><button onclick="qB('+i+',1)">+</button></div></div></div>';
+    var outDone = (b.delivered===false) ? '' : ' done';
+    var outLbl = (b.delivered===false) ? 'Segna come uscita' : '✓ Bottiglia uscita';
+    var outCheckMark = (b.delivered===false) ? '' : '✓';
+    var bottleOut = (b.spirit && b.brand) ? ('<div class="bottle-out-row'+outDone+'" onclick="togBottleOut('+i+')"><div class="bottle-out-check">'+outCheckMark+'</div><span class="bottle-out-lbl">'+outLbl+'</span></div>') : '';
+    bottles+='<div class="bcard"><div class="br1"><select style="flex:1" onchange="updBSpirit('+i+',this.value)">'+opts+'</select><button class="bdel" onclick="remB('+i+')">✕</button></div><div class="br2">'+brandField+'<div class="qctrl"><button onclick="qB('+i+',-1)">−</button><span id="bq'+i+'">'+(b.qty||1)+'</span><button onclick="qB('+i+',1)">+</button></div></div>'+bottleOut+'</div>';
   });
   var tickets=c.tickets||0;
   var pax=c.pax||0;
@@ -1480,11 +1544,34 @@ function saveNota(v){var t=getTableData(CT);t.nota=v;saveToFirebase();}
 function togReserva(){var t=getTableData(CT);t.reserva=!t.reserva;saveToFirebase();updateBtn(CT);renderSheet();}
 function addC(){var t=getT(CT),n=Math.max.apply(null,t.clients.map(function(c){return c.num;}))+1;t.clients.push(mkC(n));CC=t.clients.length-1;saveToFirebase();renderSheet();buildMap();}
 function askRemC(i){var t=getT(CT);showCov('Rimuovere cliente','Rimuovere il '+t.clients[i].num+'° cliente?',function(){t.clients.splice(i,1);if(CC>=t.clients.length)CC=t.clients.length-1;saveToFirebase();renderSheet();});}
-function updBSpirit(i,v){var c=getT(CT).clients[CC];c.bottles[i].spirit=v;c.bottles[i].brand='';saveToFirebase();refTot();renderSheet();}
+function updBSpirit(i,v){var c=getT(CT).clients[CC];c.bottles[i].spirit=v;c.bottles[i].brand='';c.bottles[i].delivered=false;saveToFirebase();refTot();renderSheet();updateBtn(CT);}
 function chgTick(d){var c=getT(CT).clients[CC];c.tickets=Math.max(0,(c.tickets||0)+d);var el=document.getElementById('tv-tick');if(el)el.textContent=c.tickets;saveToFirebase();updateBtn(CT);}
-function updB(i,f,v){var c=getT(CT).clients[CC];c.bottles[i][f]=f==='qty'?Math.max(1,parseInt(v)||1):v;saveToFirebase();refTot();}
-function qB(i,d){var c=getT(CT).clients[CC];c.bottles[i].qty=Math.max(1,(parseInt(c.bottles[i].qty)||1)+d);var el=document.getElementById('bq'+i);if(el)el.textContent=c.bottles[i].qty;saveToFirebase();refTot();}
-function addB(){getT(CT).clients[CC].bottles.push({spirit:'',brand:'',qty:1});saveToFirebase();renderSheet();}
+function updB(i,f,v){var c=getT(CT).clients[CC];c.bottles[i][f]=f==='qty'?Math.max(1,parseInt(v)||1):v;if(f==='brand'){c.bottles[i].delivered=false;}saveToFirebase();refTot();if(f==='brand')renderSheet();updateBtn(CT);}
+// Marca/desmarca garrafa como saída (entregue)
+function togBottleOut(i){var c=getT(CT).clients[CC];if(!c.bottles[i])return;var cur=(c.bottles[i].delivered===false)?false:true;c.bottles[i].delivered=!cur;saveToFirebase();renderSheet();updateBtn(CT);}
+function qB(i,d){var c=getT(CT).clients[CC];c.bottles[i].qty=Math.max(1,(parseInt(c.bottles[i].qty)||1)+d);var el=document.getElementById('bq'+i);if(el)el.textContent=c.bottles[i].qty;if(d>0&&c.bottles[i].delivered){c.bottles[i].delivered=false;renderSheet();}saveToFirebase();refTot();updateBtn(CT);}
+// Soft drinks totali (leva attuale + archiviati). Usato nei calcoli/report live.
+function mSofts(c){
+  var out={};
+  var d=c.softs_done||{};
+  var s=c.softs||{};
+  Object.keys(d).forEach(function(k){ if(d[k]>0) out[k]=(out[k]||0)+d[k]; });
+  Object.keys(s).forEach(function(k){ if(s[k]>0) out[k]=(out[k]||0)+s[k]; });
+  return out;
+}
+function addB(){
+  var c=getT(CT).clients[CC];
+  // Archivia i soft della leva corrente: restano nel report ma il contatore visivo si azzera
+  if(c.softs && Object.keys(c.softs).some(function(k){return c.softs[k]>0;})){
+    c.softs_done=c.softs_done||{};
+    Object.keys(c.softs).forEach(function(k){
+      if(c.softs[k]>0) c.softs_done[k]=(c.softs_done[k]||0)+c.softs[k];
+    });
+    c.softs={};
+  }
+  c.bottles.push({spirit:'',brand:'',qty:1});
+  saveToFirebase();renderSheet();
+}
 function remB(i){var c=getT(CT).clients[CC];c.bottles.splice(i,1);if(!c.bottles.length)c.bottles.push({spirit:'',brand:'',qty:1});saveToFirebase();renderSheet();}
 function cS(id,idx,d){var c=getT(CT).clients[CC];if(!c.softs)c.softs={};c.softs[id]=Math.max(0,(c.softs[id]||0)+d);var ve=document.getElementById('sv'+idx),ie=document.getElementById('sc'+idx);if(ve)ve.textContent=c.softs[id];if(ie){c.softs[id]>0?ie.classList.add('on'):ie.classList.remove('on');}saveToFirebase();refTot();}
 function refTot(){
@@ -1514,7 +1601,8 @@ function totEur(c){
   var EXTRAS_PRICES={frutta:40,pizza:25,sandwich:27,patatine:10};
   var extrasEur=Object.keys(EXTRAS_PRICES).reduce(function(s,k){return s+((c.extras||{})[k]?EXTRAS_PRICES[k]:0);},0);
   var allowed=allowedSofts(c);
-  var used=Object.values(c.softs||{}).reduce(function(s,v){return s+(v||0);},0);
+  var _ms=mSofts(c);
+  var used=Object.values(_ms).reduce(function(s,v){return s+(v||0);},0);
   var extraSofts=Math.max(0,used-allowed);
   var softEur=extraSofts*10;
   var acquaEur=(!c.pr&&c.acqua_piccola_pay&&c.acqua_piccola>0)?c.acqua_piccola*5:0;
@@ -1565,7 +1653,7 @@ function renderReportData(active, el, isArchived){
     clients.forEach(function(c){
       if(c.pr) return; // Offerta PR: escluso dai totali
       (c.bottles||[]).forEach(function(b){if(!b.spirit)return;var q=parseInt(b.qty)||0;totalG+=q;spC[b.spirit]=(spC[b.spirit]||0)+q;});
-      Object.keys(c.softs||{}).forEach(function(sid){var v=c.softs[sid];totalS+=v;var sd=SOFTS.find(function(s){return s.id===sid;});if(sd&&v>0)sfC[sd.n]=(sfC[sd.n]||0)+v;});
+      var _msR=mSofts(c);Object.keys(_msR).forEach(function(sid){var v=_msR[sid];totalS+=v;var sd=SOFTS.find(function(s){return s.id===sid;});if(sd&&v>0)sfC[sd.n]=(sfC[sd.n]||0)+v;});
       totalEur+=totEur(c);
     });
   });
@@ -1585,7 +1673,7 @@ function renderReportData(active, el, isArchived){
     '</tr>';
     clients.forEach(function(c){
       var bots=(c.bottles||[]).filter(function(b){return b.spirit;});
-      var sfts=Object.keys(c.softs||{}).filter(function(sid){return c.softs[sid]>0;}).map(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});return(c.softs[sid])+'x '+(d?d.n:sid);}).join(', ');
+      var _msR2=mSofts(c);var sfts=Object.keys(_msR2).filter(function(sid){return _msR2[sid]>0;}).map(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});return(_msR2[sid])+'x '+(d?d.n:sid);}).join(', ');
       var extrasLabels=['shot','sale','limone','arancia','sciropo','frutta','pizza','sandwich','patatine'];
       var extrasNames={shot:'Shot',sale:'Sale',limone:'Limone',arancia:'Arancia',sciropo:'Sciropo',frutta:'P. Frutta (40€)',pizza:'Pizza (25€)',sandwich:'Club Sandwich (27€)',patatine:'Patatine (10€)'};
       var activeExtras=extrasLabels.filter(function(k){return(c.extras||{})[k];}).map(function(k){return extrasNames[k];}).join(', ');
@@ -1646,7 +1734,7 @@ function buildTxt(){
     normalizeClients(TD[id].clients).forEach(function(c){
       if(c.pr) return; // Offerta: esclusa dai totali
       c.bottles.forEach(function(b){if(!b.spirit)return;var q=parseInt(b.qty)||0;totalG+=q;spC[b.spirit]=(spC[b.spirit]||0)+q;});
-      Object.keys(c.softs).forEach(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});if(d&&c.softs[sid]>0)sfC[d.n]=(sfC[d.n]||0)+c.softs[sid];});
+      var _msB=mSofts(c);Object.keys(_msB).forEach(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});if(d&&_msB[sid]>0)sfC[d.n]=(sfC[d.n]||0)+_msB[sid];});
     });
   });
   var totalEurTxt=0;active.forEach(function(id){normalizeClients(TD[id].clients).forEach(function(c){if(!c.pr)totalEurTxt+=totEur(c);});});
@@ -1662,7 +1750,7 @@ function buildTxt(){
       if(!bots.length&&!(c.tickets>0))return;
       if(c.pr){txt+='  '+c.num+'° cliente [OFFERTA]: '+bots.map(function(b){return b.qty+'x '+b.spirit+(b.brand?' ('+b.brand+')':'');}).join(', ')+'\n';return;}
       if(bots.length)txt+='  '+c.num+'° cliente: '+bots.map(function(b){return b.qty+'x '+b.spirit+(b.brand?' ('+b.brand+')':'');}).join(', ')+'\n';
-      var sf=Object.keys(c.softs).filter(function(sid){return c.softs[sid]>0;}).map(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});return c.softs[sid]+'x '+(d?d.n:sid);});
+      var _msB2=mSofts(c);var sf=Object.keys(_msB2).filter(function(sid){return _msB2[sid]>0;}).map(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});return _msB2[sid]+'x '+(d?d.n:sid);});
       if(sf.length)txt+='    Soft: '+sf.join(', ')+'\n';
       if(c.tickets>0)txt+='    🎫 Ticket · 300€\n';
     });
@@ -2141,12 +2229,12 @@ function seedVenerdi0804(){
   if(!dbStorico) { setTimeout(seedVenerdi0804, 800); return; }
   var SEED_KEY = 'td21_seed_20260408';
   if(localStorage.getItem(SEED_KEY)) return;
-  var ts = 1775525400000;
+  var ts = 1778203800000;
   dbStorico.child(String(ts)).once('value', function(snap){
     if(snap.exists()){ localStorage.setItem(SEED_KEY,'1'); return; }
     var entry = {
       ts: ts,
-      date: 'martedì 7 aprile 2026',
+      date: 'venerdì 8 maggio 2026',
       time: '03:30',
       tavoli: 13,
       bottiglie: 33,
@@ -2180,12 +2268,12 @@ function seedSabato0905(){
   if(!dbStorico) { setTimeout(seedSabato0905, 800); return; }
   var SEED_KEY = 'td21_seed_20260509';
   if(localStorage.getItem(SEED_KEY)) return;
-  var ts = 1778203800000;
+  var ts = 1778290200000;
   dbStorico.child(String(ts)).once('value', function(snap){
     if(snap.exists()){ localStorage.setItem(SEED_KEY,'1'); return; }
     var entry = {
       ts: ts,
-      date: 'venerdì 8 maggio 2026',
+      date: 'sabato 9 maggio 2026',
       time: '03:30',
       tavoli: 23,
       bottiglie: 42,
@@ -2624,6 +2712,273 @@ function migrateStoricoDates(){
         }
       }).catch(function(e){ console.warn('Migrazione errore:', e); });
     });
+  });
+}
+
+
+// ══════════════════════════════════════════════════════════
+// CORREZIONE DATE SPECIFICHE (one-time, flag su Firebase)
+// Alcune date erano già corrette e la migrazione le ha spostate.
+// ══════════════════════════════════════════════════════════
+function fixSpecificDatesV1(){
+  if(!dbStorico){ setTimeout(fixSpecificDatesV1, 1000); return; }
+  var metaRef = firebase.database().ref('meta/specificDatesFixedV1');
+  metaRef.once('value', function(flagSnap){
+    if(flagSnap.val() === true) return;
+
+    // Ogni correzione: identifica per (sottostringa data + n. bottiglie), applica shift in giorni
+    var corrections = [
+      { matchDate:'14 maggio', bot:13, shiftDays:+1 },  // 14→15 maggio
+      { matchDate:'15 maggio', bot:46, shiftDays:+1 },  // 15→16 maggio
+      { matchDate:'20 maggio', bot:27, shiftDays:-1 },  // 20→19 maggio
+      { matchDate:'22 maggio', bot:40, shiftDays:+1 },  // 22→23 maggio
+    ];
+    var GIORNI=['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
+    var MESI=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+    function tsMilan(ts){var n=new Date(ts);var j=new Date(n.getFullYear(),0,1),l=new Date(n.getFullYear(),6,1);var off=n.getTimezoneOffset()<Math.max(j.getTimezoneOffset(),l.getTimezoneOffset())?2:1;return new Date(ts+(n.getTimezoneOffset()+off*60)*60000);}
+
+    dbStorico.once('value', function(snap){
+      var toAdd = {}, toRemove = [];
+      snap.forEach(function(child){
+        var item = child.val();
+        if(!item||!item.ts) return;
+        corrections.forEach(function(corr){
+          if(item.date && item.date.indexOf(corr.matchDate)>=0 && item.bottiglie===corr.bot){
+            var newTs = item.ts + corr.shiftDays*86400000;
+            var nm = tsMilan(newTs);
+            var ni = JSON.parse(JSON.stringify(item));
+            ni.ts = newTs;
+            ni.date = GIORNI[nm.getDay()]+' '+nm.getDate()+' '+MESI[nm.getMonth()]+' '+nm.getFullYear();
+            toAdd[String(newTs)] = ni;
+            toRemove.push(String(item.ts));
+          }
+        });
+      });
+      var ops=[];
+      Object.keys(toAdd).forEach(function(k){ ops.push(dbStorico.child(k).set(toAdd[k])); });
+      Promise.all(ops).then(function(){
+        var newKeys=Object.keys(toAdd);
+        var rm=[];
+        toRemove.forEach(function(k){ if(newKeys.indexOf(k)===-1) rm.push(dbStorico.child(k).remove()); });
+        return Promise.all(rm);
+      }).then(function(){
+        metaRef.set(true);
+        console.log('Correzione date specifiche completata');
+        if(document.getElementById('page-chiusura')&&document.getElementById('page-chiusura').classList.contains('on')){loadStorico();if(typeof renderAnalytics==='function')renderAnalytics();}
+      }).catch(function(e){console.warn('Fix error:',e);});
+    });
+  });
+}
+
+
+// ── SEED: Venerdì 29 maggio 2026 ─────────────────────────
+function seedVenerdi2905(){
+  if(!dbStorico){setTimeout(seedVenerdi2905,800);return;}
+  var K='td21_seed_20260529';
+  if(localStorage.getItem(K))return;
+  var ts=1780018200000;
+  dbStorico.child(String(ts)).once('value',function(s){
+    if(s.exists()){localStorage.setItem(K,'1');return;}
+    dbStorico.child(String(ts)).set({ts:ts,date:'venerdì 29 maggio 2026',time:'03:30',tavoli:16,bottiglie:29,data:{'6':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:"Belvedere 70cl",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'D5':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:"Belvedere Magnum 175cl",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'5':{clients:[{num:1,bottles:[{spirit:'Champagne',brand:"Veuve Clicquot Yellow Label",qty:1},{spirit:'Vodka',brand:"Belvedere 70cl",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'G7':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:"Belvedere Magnum 175cl",qty:1},{spirit:'Tequila',brand:"Volcán de mi Tierra Blanco",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'4':{clients:[{num:1,bottles:[{spirit:'Whiskey',brand:"Macallan 12yo",qty:1},{spirit:'Champagne',brand:"Veuve Clicquot Yellow Label",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'L1S':{clients:[{num:1,bottles:[{spirit:'Gin',brand:"Malfy Originale 70cl",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'D1':{clients:[{num:1,bottles:[{spirit:'Gin',brand:"Malfy Originale 70cl",qty:4}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'8':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:"Belvedere 70cl",qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'7':{clients:[{num:1,bottles:[{spirit:'Gin',brand:"Hendrick's 70cl",qty:1},{spirit:'Tequila',brand:"Volcán de mi Tierra Blanco",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'55':{clients:[{num:1,bottles:[{spirit:'Whiskey',brand:"The Glenlivet 12yo",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'G1G2':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:"Belvedere Magnum 175cl",qty:1},{spirit:'Gin',brand:"Hendrick's 70cl",qty:1},{spirit:'Tequila',brand:"Volcán de mi Tierra Blanco",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'G5':{clients:[{num:1,bottles:[{spirit:'Champagne',brand:"Dom Pérignon 2017",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'9':{clients:[{num:1,bottles:[{spirit:'Gin',brand:"Malfy Originale 70cl",qty:1},{spirit:'Vodka',brand:"Belvedere 70cl",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'J':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:"Belvedere Magnum 175cl",qty:1},{spirit:'Vodka',brand:"Belvedere 70cl",qty:1},{spirit:'Gin',brand:"Malfy Originale 70cl",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'T3':{clients:[{num:1,bottles:[{spirit:'Tequila',brand:"Patrón Añejo",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'10':{clients:[{num:1,bottles:[{spirit:'Champagne',brand:"Ruinart Rosé",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false}}}).then(function(){localStorage.setItem(K,'1');console.log('Seed 29/05 OK');if(document.getElementById('page-chiusura').classList.contains('on'))loadStorico();}).catch(function(e){console.warn(e);});
+  });
+}
+
+// ── SEED: Sabato 30 maggio 2026 ──────────────────────────
+function seedSabato3005(){
+  if(!dbStorico){setTimeout(seedSabato3005,800);return;}
+  var K='td21_seed_20260530';
+  if(localStorage.getItem(K))return;
+  var ts=1780104600000;
+  dbStorico.child(String(ts)).once('value',function(s){
+    if(s.exists()){localStorage.setItem(K,'1');return;}
+    dbStorico.child(String(ts)).set({ts:ts,date:'sabato 30 maggio 2026',time:'03:30',tavoli:12,bottiglie:23,data:{'7':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:"Belvedere Magnum 175cl",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'8':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:"Belvedere 70cl",qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'G5':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:"Belvedere 70cl",qty:2},{spirit:'Champagne',brand:"Dom Pérignon 2017",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'E7':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:"Belvedere 70cl",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'5':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:"Belvedere Magnum 175cl",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'T1':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:"Belvedere 70cl",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'L1S':{clients:[{num:1,bottles:[{spirit:'Gin',brand:"Malfy Originale 70cl",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'G7':{clients:[{num:1,bottles:[{spirit:'Gin',brand:"Malfy Pompelmo 70cl",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'9':{clients:[{num:1,bottles:[{spirit:'Gin',brand:"Malfy Originale 70cl",qty:1},{spirit:'Vodka',brand:"Belvedere 70cl",qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'G1G2':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:"Belvedere Magnum 175cl",qty:1},{spirit:'Champagne',brand:"Dom Pérignon Rosé 2009",qty:4}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'D1':{clients:[{num:1,bottles:[{spirit:'Champagne',brand:"Veuve Clicquot Yellow Label",qty:3}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'D5':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:"Belvedere 70cl",qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false}}}).then(function(){localStorage.setItem(K,'1');console.log('Seed 30/05 OK');if(document.getElementById('page-chiusura').classList.contains('on'))loadStorico();}).catch(function(e){console.warn(e);});
+  });
+}
+
+
+// ══════════════════════════════════════════════════════════
+// CORREZIONE PUNTUALE: alcuni turni avevano date già corrette
+// che la migrazione generale ha spostato erroneamente.
+// Identifica per (bottiglie + data attuale) e applica lo shift giusto.
+// Gira UNA SOLA VOLTA (flag: meta/dateCorrV3).
+// ══════════════════════════════════════════════════════════
+function correctSpecificDates(){
+  if(!dbStorico){ setTimeout(correctSpecificDates, 1200); return; }
+  var metaRef = firebase.database().ref('meta/dateCorrV3');
+  metaRef.once('value', function(flagSnap){
+    if(flagSnap.val() === true) return;
+
+    dbStorico.once('value', function(snap){
+      // Definisce le correzioni: chiave = giorno+mese attuale + bottiglie
+      // valore = giorni da spostare
+      var rules = [
+        {month:5, day:14, bottiglie:13, shift:1},  // gio 14 mag → ven 15
+        {month:5, day:15, bottiglie:46, shift:1},  // 15 mag → 16
+        {month:5, day:22, bottiglie:40, shift:1},  // ven 22 → sab 23
+        {month:5, day:20, bottiglie:27, shift:-1}  // mer 20 → mar 19
+      ];
+
+      var updates = {}; var removes = [];
+      snap.forEach(function(child){
+        var item = child.val();
+        if(!item || !item.ts) return;
+        var milan = tsToMilan(item.ts);
+        var matched = null;
+        for(var i=0;i<rules.length;i++){
+          var r = rules[i];
+          if(milan.getMonth()+1===r.month && milan.getDate()===r.day && item.bottiglie===r.bottiglie){
+            matched = r; break;
+          }
+        }
+        if(matched){
+          var newTs = item.ts + matched.shift*86400000;
+          var newMilan = tsToMilan(newTs);
+          var newItem = JSON.parse(JSON.stringify(item));
+          newItem.ts = newTs;
+          newItem.date = buildDateLabel(newMilan);
+          updates[String(newTs)] = newItem;
+          removes.push(String(item.ts));
+        }
+      });
+
+      var ops = [];
+      Object.keys(updates).forEach(function(k){ ops.push(dbStorico.child(k).set(updates[k])); });
+      Promise.all(ops).then(function(){
+        var newKeys = Object.keys(updates);
+        var rmOps = [];
+        removes.forEach(function(oldK){
+          if(newKeys.indexOf(oldK) === -1) rmOps.push(dbStorico.child(oldK).remove());
+        });
+        return Promise.all(rmOps);
+      }).then(function(){
+        metaRef.set(true);
+        console.log('Correzione date puntuali completata');
+        if(document.getElementById('page-chiusura') && document.getElementById('page-chiusura').classList.contains('on')){
+          loadStorico();
+          if(typeof renderAnalytics === 'function') renderAnalytics();
+        }
+      }).catch(function(e){ console.warn('Correzione errore:', e); });
+    });
+  });
+}
+
+
+// ── SEED: Venerdì 29 maggio 2026 ─────────────────────────
+function seedVenerdi2905(){
+  if(!dbStorico){setTimeout(seedVenerdi2905,800);return;}
+  var K='td21_seed_20260529';
+  if(localStorage.getItem(K))return;
+  var ts=1780018200000;
+  dbStorico.child(String(ts)).once('value',function(snap){
+    if(snap.exists()){localStorage.setItem(K,'1');return;}
+    dbStorico.child(String(ts)).set({
+      ts:ts,date:'venerdì 29 maggio 2026',time:'03:30',tavoli:16,bottiglie:29,
+      data:{'6':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'D5':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'5':{clients:[{num:1,bottles:[{spirit:'Champagne',brand:'Veuve Clicquot Yellow Label',qty:1},{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'G7':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1},{spirit:'Tequila',brand:'Volcán de mi Tierra Blanco',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'4':{clients:[{num:1,bottles:[{spirit:'Whiskey',brand:'Macallan 12yo',qty:1},{spirit:'Champagne',brand:'Veuve Clicquot Yellow Label',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'L1S':{clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'D1':{clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:4}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'8':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'7':{clients:[{num:1,bottles:[{spirit:'Gin',brand:"Hendrick's 70cl",qty:1},{spirit:'Tequila',brand:'Volcán de mi Tierra Blanco',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'55':{clients:[{num:1,bottles:[{spirit:'Whiskey',brand:'The Glenlivet 12yo',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'G1G2':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1},{spirit:'Gin',brand:"Hendrick's 70cl",qty:1},{spirit:'Tequila',brand:'Volcán de mi Tierra Blanco',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'G5':{clients:[{num:1,bottles:[{spirit:'Champagne',brand:'Dom Pérignon 2017',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'9':{clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1},{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'J':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1},{spirit:'Vodka',brand:'Belvedere 70cl',qty:1},{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'T3':{clients:[{num:1,bottles:[{spirit:'Tequila',brand:'Patrón Añejo',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'10':{clients:[{num:1,bottles:[{spirit:'Champagne',brand:'Ruinart Rosé',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false}}
+    }).then(function(){localStorage.setItem(K,'1');console.log('Seed 29/05 OK');
+      if(document.getElementById('page-chiusura').classList.contains('on'))loadStorico();
+    }).catch(function(e){console.warn('Seed error:',e);});
+  });
+}
+
+// ── SEED: Sabato 30 maggio 2026 ──────────────────────────
+function seedSabato3005(){
+  if(!dbStorico){setTimeout(seedSabato3005,800);return;}
+  var K='td21_seed_20260530';
+  if(localStorage.getItem(K))return;
+  var ts=1780104600000;
+  dbStorico.child(String(ts)).once('value',function(snap){
+    if(snap.exists()){localStorage.setItem(K,'1');return;}
+    dbStorico.child(String(ts)).set({
+      ts:ts,date:'sabato 30 maggio 2026',time:'03:30',tavoli:12,bottiglie:23,
+      data:{'7':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'8':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'G5':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:2},{spirit:'Champagne',brand:'Dom Pérignon 2017',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'E7':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'5':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'T1':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'L1S':{clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'G7':{clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Pompelmo 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'9':{clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1},{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'G1G2':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere Magnum 175cl',qty:1},{spirit:'Champagne',brand:'Dom Pérignon Rosé 2009',qty:4}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'D1':{clients:[{num:1,bottles:[{spirit:'Champagne',brand:'Veuve Clicquot Yellow Label',qty:3}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},'D5':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false}}
+    }).then(function(){localStorage.setItem(K,'1');console.log('Seed 30/05 OK');
+      if(document.getElementById('page-chiusura').classList.contains('on'))loadStorico();
+    }).catch(function(e){console.warn('Seed error:',e);});
+  });
+}
+
+
+// ══════════════════════════════════════════════════════════
+// CORREZIONE V5: imposta date ASSOLUTE per turni specifici
+// Identifica per (mese, giorno, bottiglie) attuali e imposta data target.
+// Idempotente: se già alla data target, non fa nulla.
+// Flag: meta/dateCorrV6
+// ══════════════════════════════════════════════════════════
+function correctDatesV5(){
+  if(!dbStorico){ setTimeout(correctDatesV5, 1200); return; }
+  var metaRef = firebase.database().ref('meta/dateCorrV6');
+  metaRef.once('value', function(flagSnap){
+    if(flagSnap.val() === true) return;
+    dbStorico.once('value', function(snap){
+      // match: {curMonth, curDay, bottiglie} → {targetY, targetMo, targetD}
+      var rules = [
+        {month:4, day:7,  bottiglie:33, ty:2026, tmo:5, td:8},   // mar 7 apr → ven 8 mag
+        {month:5, day:8,  bottiglie:42, ty:2026, tmo:5, td:9},   // ven 8 mag → sab 9 mag
+        {month:5, day:14, bottiglie:10, ty:2026, tmo:5, td:15},  // gio 14 mag → ven 15 mag
+        {month:5, day:15, bottiglie:46, ty:2026, tmo:5, td:16},  // ven 15 mag → sab 16 mag
+        {month:5, day:22, bottiglie:40, ty:2026, tmo:5, td:23}   // ven 22 mag → sab 23 mag
+      ];
+      var updates = {}; var removes = [];
+      snap.forEach(function(child){
+        var item = child.val();
+        if(!item || !item.ts) return;
+        var milan = tsToMilan(item.ts);
+        for(var i=0;i<rules.length;i++){
+          var r = rules[i];
+          if(milan.getMonth()+1===r.month && milan.getDate()===r.day && item.bottiglie===r.bottiglie){
+            // build target ts at 03:30 Milan
+            var targetUtc = Date.UTC(r.ty, r.tmo-1, r.td, 1, 30, 0); // 03:30 CEST = 01:30 UTC
+            var newItem = JSON.parse(JSON.stringify(item));
+            newItem.ts = targetUtc;
+            newItem.date = buildDateLabel(tsToMilan(targetUtc));
+            updates[String(targetUtc)] = newItem;
+            if(String(item.ts) !== String(targetUtc)) removes.push(String(item.ts));
+            break;
+          }
+        }
+      });
+      var ops = [];
+      Object.keys(updates).forEach(function(k){ ops.push(dbStorico.child(k).set(updates[k])); });
+      Promise.all(ops).then(function(){
+        var newKeys = Object.keys(updates);
+        var rmOps = [];
+        removes.forEach(function(oldK){ if(newKeys.indexOf(oldK)===-1) rmOps.push(dbStorico.child(oldK).remove()); });
+        return Promise.all(rmOps);
+      }).then(function(){
+        metaRef.set(true);
+        console.log('Correzione V5 completata');
+        if(document.getElementById('page-chiusura') && document.getElementById('page-chiusura').classList.contains('on')){
+          loadStorico(); if(typeof renderAnalytics==='function') renderAnalytics();
+        }
+      }).catch(function(e){ console.warn('V5 errore:', e); });
+    });
+  });
+}
+
+// ── SEED: Domenica 31 maggio 2026 ────────────────────────
+function seedDomenica3105(){
+  if(!dbStorico){setTimeout(seedDomenica3105,800);return;}
+  var K='td21_seed_20260531';
+  if(localStorage.getItem(K))return;
+  var ts=1780191000000;
+  dbStorico.child(String(ts)).once('value',function(snap){
+    if(snap.exists()){localStorage.setItem(K,'1');return;}
+    dbStorico.child(String(ts)).set({
+      ts:ts,date:'domenica 31 maggio 2026',time:'03:30',tavoli:9,bottiglie:11,
+      data:{
+        'G7':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '6':{clients:[{num:1,bottles:[{spirit:'Champagne',brand:'Veuve Clicquot Yellow Label',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '5':{clients:[{num:1,bottles:[{spirit:'Gin',brand:'Bombay Sapphire Premier Cru 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'D1':{clients:[{num:1,bottles:[{spirit:'Prosecco',brand:'Cà del Bosco Cuvée Prestige',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'G5':{clients:[{num:1,bottles:[{spirit:'Champagne',brand:'Veuve Clicquot Yellow Label',qty:2}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '7':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        'G1G2':{clients:[{num:1,bottles:[{spirit:'Vodka',brand:'Belvedere 70cl',qty:1},{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '4':{clients:[{num:1,bottles:[{spirit:'Champagne',brand:'Veuve Clicquot Yellow Label',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false},
+        '8':{clients:[{num:1,bottles:[{spirit:'Gin',brand:'Malfy Originale 70cl',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false}],nota:'',reserva:false}
+      }
+    }).then(function(){localStorage.setItem(K,'1');console.log('Seed 31/05 OK');
+      if(document.getElementById('page-chiusura').classList.contains('on'))loadStorico();
+    }).catch(function(e){console.warn('Seed error:',e);});
   });
 }
 
