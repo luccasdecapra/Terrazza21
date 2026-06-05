@@ -706,7 +706,7 @@ select:focus,input:focus{border-color:var(--gold2);}
 </div>
 
 <!-- CONFIGURAZIONI DISPOSITIVO -->
-<button id="settingsCtrl" onclick="openSettings()" style="position:fixed;bottom:max(16px,env(safe-area-inset-bottom,16px));right:80px;z-index:9600;width:54px;height:54px;border-radius:50%;border:none;background:#1a1510;color:#FFD700;font-size:22px;box-shadow:0 4px 16px rgba(0,0,0,.35);cursor:pointer;display:flex;align-items:center;justify-content:center;">⚙️</button>
+<button id="settingsCtrl" onclick="openSettings()" style="position:fixed;bottom:max(4px,env(safe-area-inset-bottom,4px));right:54px;z-index:9600;width:38px;height:38px;border-radius:50%;border:none;background:#1a1510;color:#FFD700;font-size:16px;box-shadow:0 4px 16px rgba(0,0,0,.35);cursor:pointer;display:flex;align-items:center;justify-content:center;">⚙️</button>
 
 <div class="settings-ov" id="settingsOv" onclick="closeSettings()">
   <div class="settings-box" onclick="event.stopPropagation()">
@@ -735,7 +735,7 @@ select:focus,input:focus{border-color:var(--gold2);}
 </div>
 
 <!-- CONTROLLO SUONO (sala) -->
-<button id="soundCtrl" onclick="toggleSound()" style="position:fixed;bottom:max(16px,env(safe-area-inset-bottom,16px));right:16px;z-index:9600;width:54px;height:54px;border-radius:50%;border:none;background:#1a1510;color:#FFD700;font-size:22px;box-shadow:0 4px 16px rgba(0,0,0,.35);cursor:pointer;display:flex;align-items:center;justify-content:center;">🔕</button>
+<button id="soundCtrl" onclick="toggleSound()" style="position:fixed;bottom:max(4px,env(safe-area-inset-bottom,4px));right:10px;z-index:9600;width:38px;height:38px;border-radius:50%;border:none;background:#1a1510;color:#FFD700;font-size:16px;box-shadow:0 4px 16px rgba(0,0,0,.35);cursor:pointer;display:flex;align-items:center;justify-content:center;">🔕</button>
 
 <!-- NOTIFICHE COMANDE (sala) -->
 <div class="notif-stack" id="notifStack"></div>
@@ -1725,7 +1725,7 @@ function renderSheet(){
 }
 
 function chgPax(d){var c=getT(CT).clients[CC];c.pax=Math.max(0,(c.pax||0)+d);var el=document.getElementById('pax-val');if(el)el.textContent=c.pax;saveToFirebase();}
-function togExtra(id){var c=getT(CT).clients[CC];if(!c.extras)c.extras={};c.extras[id]=!c.extras[id];var btn=document.getElementById('ex-'+id);if(btn){btn.classList.toggle('on',!!c.extras[id]);btn.querySelector('.xtick').textContent=c.extras[id]?'✓ ':'';}saveToFirebase();}
+function togExtra(id){var c=getT(CT).clients[CC];if(!c.extras)c.extras={};c.extras[id]=!c.extras[id];if(c.extras_out&&!c.extras[id]){delete c.extras_out[id];}var btn=document.getElementById('ex-'+id);if(btn){btn.classList.toggle('on',!!c.extras[id]);btn.querySelector('.xtick').textContent=c.extras[id]?'✓ ':'';}saveToFirebase();}
 function swC(i){CC=i;renderSheet();}
 function togPR(){var c=getT(CT).clients[CC];c.pr=!c.pr;saveToFirebase();updateBtn(CT);renderSheet();}
 function setVoucher(val){var c=getT(CT).clients[CC];c.voucher=Math.max(0,parseInt(val)||0);saveToFirebase();updateBtn(CT);refTot();}
@@ -1755,9 +1755,16 @@ function qB(i,d){
       });
       c.softs={};
     }
-    // Nova leva: resetta i marcatori 'uscito' dei soft/extra (ripartono da zero)
+    // Nova leva: tutto ciò che c'era PRIMA (soft + extra della leva precedente)
+    // viene segnato come GIÀ USCITO, così non riappare nella nuova comanda.
+    // I soft attuali sono già stati archiviati sopra (c.softs ora è {}),
+    // ma marchiamo comunque gli extra correnti come usciti.
+    c.extras_out=c.extras_out||{};
+    Object.keys(c.extras||{}).forEach(function(eid){
+      if(c.extras[eid]) c.extras_out[eid]=true;
+    });
+    // I soft: azzerati visivamente (c.softs={}), quindi softs_out riparte pulito
     c.softs_out={};
-    c.extras_out={};
     // La bottiglia ora è tracciata; le unità già uscite restano in qty_out,
     // quindi solo la NUOVA unità risulta da consegnare (qty - qty_out).
     if(c.bottles[i].delivered===undefined) c.bottles[i].delivered=false;
