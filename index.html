@@ -1387,7 +1387,7 @@ function updateBtn(id){
       TD[id].clients.forEach(function(c){
         if(c.pr) return; // PR offerta non conta? la consegna serve comunque — manteniamo il blink anche per PR
         (c.bottles||[]).forEach(function(b){
-          if(b.spirit&&b.brand&&b.delivered===false) hasPendingBottle=true;
+          if(bottlePending(b)>0) hasPendingBottle=true;
         });
       });
     }
@@ -1617,9 +1617,10 @@ function renderSheet(){
     } else {
       brandField='<input type="text" placeholder="Marca" value="'+(b.brand||'')+'" oninput="updB('+i+',\'brand\',this.value)" style="flex:1"/>';
     }
-    var outDone = (b.delivered===false) ? '' : ' done';
-    var outLbl = (b.delivered===false) ? 'Segna come uscita' : '✓ Bottiglia uscita';
-    var outCheckMark = (b.delivered===false) ? '' : '✓';
+    var _pend = bottlePending(b);
+    var outDone = (_pend>0) ? '' : ' done';
+    var outLbl = (_pend>0) ? 'Segna come uscita' : '✓ Bottiglia uscita';
+    var outCheckMark = (_pend>0) ? '' : '✓';
     var bottleOut = (b.spirit && b.brand) ? ('<div class="bottle-out-row'+outDone+'" onclick="togBottleOut('+i+')"><div class="bottle-out-check">'+outCheckMark+'</div><span class="bottle-out-lbl">'+outLbl+'</span></div>') : '';
     bottles+='<div class="bcard"><div class="br1"><select style="flex:1" onchange="updBSpirit('+i+',this.value)">'+opts+'</select><button class="bdel" onclick="remB('+i+')">✕</button></div><div class="br2">'+brandField+'<div class="qctrl"><button onclick="qB('+i+',-1)">−</button><span id="bq'+i+'">'+(b.qty||1)+'</span><button onclick="qB('+i+',1)">+</button></div></div>'+bottleOut+'</div>';
   });
@@ -1736,11 +1737,11 @@ function saveNota(v){var t=getTableData(CT);t.nota=v;saveToFirebase();}
 function togReserva(){var t=getTableData(CT);t.reserva=!t.reserva;saveToFirebase();updateBtn(CT);renderSheet();}
 function addC(){var t=getT(CT),n=Math.max.apply(null,t.clients.map(function(c){return c.num;}))+1;t.clients.push(mkC(n));CC=t.clients.length-1;saveToFirebase();renderSheet();buildMap();}
 function askRemC(i){var t=getT(CT);showCov('Rimuovere cliente','Rimuovere il '+t.clients[i].num+'° cliente?',function(){t.clients.splice(i,1);if(CC>=t.clients.length)CC=t.clients.length-1;saveToFirebase();renderSheet();});}
-function updBSpirit(i,v){var c=getT(CT).clients[CC];c.bottles[i].spirit=v;c.bottles[i].brand='';c.bottles[i].delivered=false;saveToFirebase();refTot();renderSheet();updateBtn(CT);}
+function updBSpirit(i,v){var c=getT(CT).clients[CC];c.bottles[i].spirit=v;c.bottles[i].brand='';c.bottles[i].delivered=false;c.bottles[i].qty_out=0;saveToFirebase();refTot();renderSheet();updateBtn(CT);}
 function chgTick(d){var c=getT(CT).clients[CC];c.tickets=Math.max(0,(c.tickets||0)+d);var el=document.getElementById('tv-tick');if(el)el.textContent=c.tickets;saveToFirebase();updateBtn(CT);}
-function updB(i,f,v){var c=getT(CT).clients[CC];c.bottles[i][f]=f==='qty'?Math.max(1,parseInt(v)||1):v;if(f==='brand'){c.bottles[i].delivered=false;}saveToFirebase();refTot();if(f==='brand')renderSheet();updateBtn(CT);}
+function updB(i,f,v){var c=getT(CT).clients[CC];c.bottles[i][f]=f==='qty'?Math.max(1,parseInt(v)||1):v;if(f==='brand'){c.bottles[i].delivered=false;c.bottles[i].qty_out=0;}saveToFirebase();refTot();if(f==='brand')renderSheet();updateBtn(CT);}
 // Marca/desmarca garrafa como saída (entregue)
-function togBottleOut(i){var c=getT(CT).clients[CC];if(!c.bottles[i])return;var cur=(c.bottles[i].delivered===false)?false:true;c.bottles[i].delivered=!cur;saveToFirebase();renderSheet();updateBtn(CT);}
+function togBottleOut(i){var c=getT(CT).clients[CC];var b=c.bottles[i];if(!b)return;if(b.delivered===undefined)b.delivered=true;var pend=bottlePending(b);if(pend>0){b.qty_out=parseInt(b.qty)||0;b.delivered=true;}else{b.qty_out=0;b.delivered=false;}saveToFirebase();renderSheet();updateBtn(CT);}
 function qB(i,d){
   var c=getT(CT).clients[CC];
   c.bottles[i].qty=Math.max(1,(parseInt(c.bottles[i].qty)||1)+d);
@@ -1754,15 +1755,19 @@ function qB(i,d){
       });
       c.softs={};
     }
-    // Nova leva: resetta i marcatori 'uscito' (soft e extra ripartono da zero)
+    // Nova leva: resetta i marcatori 'uscito' dei soft/extra (ripartono da zero)
     c.softs_out={};
     c.extras_out={};
-    // Nova unidade da garrafa = nova entrega pendente (volta a piscar)
-    c.bottles[i].delivered=false;
+    // La bottiglia ora è tracciata; le unità già uscite restano in qty_out,
+    // quindi solo la NUOVA unità risulta da consegnare (qty - qty_out).
+    if(c.bottles[i].delivered===undefined) c.bottles[i].delivered=false;
+    if(c.bottles[i].qty_out===undefined) c.bottles[i].qty_out=0;
     renderSheet();
   } else if(d<0){
-    // Diminuindo: zera apenas os soft visuais atuais (os arquivados permanecem no relatório)
+    // Diminuindo: zera os soft visuais e aggiusta qty_out se supera la qty
     c.softs={};
+    var nq=parseInt(c.bottles[i].qty)||0;
+    if(c.bottles[i].qty_out!==undefined && c.bottles[i].qty_out>nq) c.bottles[i].qty_out=nq;
     renderSheet();
   }
   saveToFirebase();refTot();updateBtn(CT);
@@ -3369,6 +3374,16 @@ function reloadComandeNotifs(){
   });
 }
 
+// Quantità ancora da consegnare per una bottiglia (qty - qty già usciti)
+// Bottiglie pre-versione (delivered undefined) → 0 (non tracciate, non lampeggiano)
+function bottlePending(b){
+  if(!b || !b.spirit || !b.brand) return 0;
+  if(b.delivered===undefined) return 0;
+  var qty=parseInt(b.qty)||0;
+  var out=(b.qty_out!==undefined && b.qty_out!==null)?b.qty_out:0;
+  return Math.max(0, qty-out);
+}
+
 // Costruisce gli item pendenti di un tavolo (bottiglie non consegnate + soft leva attuale + extra + pax)
 function buildComandaItems(id){
   var t=TD[id];
@@ -3379,7 +3394,7 @@ function buildComandaItems(id){
   clients.forEach(function(c){
     totPax+=parseInt(c.pax)||0;
     (c.bottles||[]).forEach(function(b){
-      if(b.spirit&&b.brand&&b.delivered===false) bottleLines.push({q:parseInt(b.qty)||1, n:b.brand});
+      var bp=bottlePending(b); if(bp>0) bottleLines.push({q:bp, n:b.brand});
     });
     // Soft pendenti = quantità attuale MENO quelli già usciti (softs_out)
     var sOut=c.softs_out||{};
@@ -3534,7 +3549,7 @@ function evadiComanda(key, tavolo){
           if(!c) return;
           // Bottiglie
           var bl=Array.isArray(c.bottles)?c.bottles:(c.bottles?Object.keys(c.bottles).map(function(x){return c.bottles[x];}):[]);
-          bl.forEach(function(b){ if(b&&b.spirit&&b.brand&&b.delivered===false) b.delivered=true; });
+          bl.forEach(function(b){ if(b&&b.spirit&&b.brand&&b.delivered!==undefined){ b.qty_out=parseInt(b.qty)||0; b.delivered=true; } });
           c.bottles=bl;
           // Soft: segna tutti gli attuali come usciti
           c.softs_out=c.softs_out||{};
