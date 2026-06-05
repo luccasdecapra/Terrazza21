@@ -948,7 +948,7 @@ var PRICES={
 };
 
 var MAGNUM_BRANDS={'Belvedere Magnum 175cl':1};
-var SPIRITS=['Vodka','Gin','Whiskey','Rum','Tequila','Cognac','Champagne','Prosecco','Vino Bianco','Vino Rosso','Vino Rosé','Amari','Altro'];
+var SPIRITS=['Vodka','Gin','Whiskey','Rum','Tequila','Cognac','Champagne','Prosecco','Vino Bianco','Vino Rosso','Vino Rosé','Amari','Altro','✏️ Personalizzata'];
 var SUPER={Vodka:1,Gin:1,Whiskey:1,Rum:1,Tequila:1,Cognac:1,Altro:1};
 var LABELS={G1G2:'G1 + G2', L1S:'L1 Sinistra', L1D:'L1 Destra', L2S:'L2 Sinistra', L2D:'L2 Destra'};
 var ALL_IDS=['D1','D2','D3','D4','D5','10','9','8','7','6','5','4','2','10A','9A','8A','7A','6A','5A','4A','1','J','G7','G6','G5','G1G2','L1S','L1D','L2S','L2D','E7','E8','E3','E4','51','52','53','54','55','56','T1','T3','T4','81','82','83'];
@@ -1617,12 +1617,21 @@ function renderSheet(){
     } else {
       brandField='<input type="text" placeholder="Marca" value="'+(b.brand||'')+'" oninput="updB('+i+',\'brand\',this.value)" style="flex:1"/>';
     }
+    // Campo prezzo manuale per bottiglie Personalizzate
+    var customPriceField='';
+    if(b.spirit==='✏️ Personalizzata'){
+      customPriceField='<div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;background:var(--gold-bg);border:2px solid var(--gold2);border-radius:8px;">'+
+        '<span style="font-size:12px;font-weight:700;color:var(--gold);flex:1;">💰 Prezzo bottiglia</span>'+
+        '<input type="number" min="0" step="50" placeholder="0" value="'+((b.custom_price!==undefined&&b.custom_price!==null&&b.custom_price!=='')?b.custom_price:'')+'" onchange="setCustomPrice('+i+',this.value)" style="width:90px;padding:6px 8px;background:var(--bg3);border:2px solid var(--border2);border-radius:6px;color:var(--dark);font-family:-apple-system,sans-serif;font-size:15px;font-weight:700;text-align:center;-webkit-appearance:none;outline:none;"/>'+
+        '<span style="font-size:13px;font-weight:700;color:var(--muted);">€</span>'+
+      '</div>';
+    }
     var _pend = bottlePending(b);
     var outDone = (_pend>0) ? '' : ' done';
     var outLbl = (_pend>0) ? 'Segna come uscita' : '✓ Bottiglia uscita';
     var outCheckMark = (_pend>0) ? '' : '✓';
     var bottleOut = (b.spirit && b.brand) ? ('<div class="bottle-out-row'+outDone+'" onclick="togBottleOut('+i+')"><div class="bottle-out-check">'+outCheckMark+'</div><span class="bottle-out-lbl">'+outLbl+'</span></div>') : '';
-    bottles+='<div class="bcard"><div class="br1"><select style="flex:1" onchange="updBSpirit('+i+',this.value)">'+opts+'</select><button class="bdel" onclick="remB('+i+')">✕</button></div><div class="br2">'+brandField+'<div class="qctrl"><button onclick="qB('+i+',-1)">−</button><span id="bq'+i+'">'+(b.qty||1)+'</span><button onclick="qB('+i+',1)">+</button></div></div>'+bottleOut+'</div>';
+    bottles+='<div class="bcard"><div class="br1"><select style="flex:1" onchange="updBSpirit('+i+',this.value)">'+opts+'</select><button class="bdel" onclick="remB('+i+')">✕</button></div><div class="br2">'+brandField+'<div class="qctrl"><button onclick="qB('+i+',-1)">−</button><span id="bq'+i+'">'+(b.qty||1)+'</span><button onclick="qB('+i+',1)">+</button></div></div>'+customPriceField+bottleOut+'</div>';
   });
   var tickets=c.tickets||0;
   var pax=c.pax||0;
@@ -1706,7 +1715,7 @@ function renderSheet(){
     '<div class="tbar">'+
     '<div class="titem"><div class="tval" id="tv-b">'+totB(c)+'</div><div class="tlbl">Bottiglie</div></div>'+
     '<div class="tdiv"></div>'+
-    '<div class="titem"><div class="tval" id="tv-a">'+allowed+'</div><div class="tlbl">Soft Permessi</div><div id="tv-mag" style="font-size:8px;color:#c9a940;margin-top:2px;display:'+(c.bottles.some(function(b){return b.spirit&&SUPER[b.spirit]&&PRICES[b.brand]>=600;})?'block':'none')+'">★ ×16 softs</div></div>'+
+    '<div class="titem"><div class="tval" id="tv-a">'+allowed+'</div><div class="tlbl">Soft Permessi</div><div id="tv-mag" style="font-size:8px;color:#c9a940;margin-top:2px;display:'+(c.bottles.some(function(b){return b.spirit&&SUPER[b.spirit]&&bottlePrice(b)>=600;})?'block':'none')+'">★ ×16 softs</div></div>'+
     '<div class="tdiv"></div>'+
     '<div class="titem"><div class="tval'+(over?' over':'')+'" id="tv-u">'+used+'</div><div class="tlbl">Soft Usciti</div></div>'+
     '</div>';
@@ -1737,9 +1746,10 @@ function saveNota(v){var t=getTableData(CT);t.nota=v;saveToFirebase();}
 function togReserva(){var t=getTableData(CT);t.reserva=!t.reserva;saveToFirebase();updateBtn(CT);renderSheet();}
 function addC(){var t=getT(CT),n=Math.max.apply(null,t.clients.map(function(c){return c.num;}))+1;t.clients.push(mkC(n));CC=t.clients.length-1;saveToFirebase();renderSheet();buildMap();}
 function askRemC(i){var t=getT(CT);showCov('Rimuovere cliente','Rimuovere il '+t.clients[i].num+'° cliente?',function(){t.clients.splice(i,1);if(CC>=t.clients.length)CC=t.clients.length-1;saveToFirebase();renderSheet();});}
-function updBSpirit(i,v){var c=getT(CT).clients[CC];c.bottles[i].spirit=v;c.bottles[i].brand='';c.bottles[i].delivered=false;c.bottles[i].qty_out=0;saveToFirebase();refTot();renderSheet();updateBtn(CT);}
+function updBSpirit(i,v){var c=getT(CT).clients[CC];c.bottles[i].spirit=v;c.bottles[i].brand='';c.bottles[i].delivered=false;c.bottles[i].qty_out=0;if(v!=='✏️ Personalizzata'){c.bottles[i].custom_price='';}saveToFirebase();refTot();renderSheet();updateBtn(CT);}
 function chgTick(d){var c=getT(CT).clients[CC];c.tickets=Math.max(0,(c.tickets||0)+d);var el=document.getElementById('tv-tick');if(el)el.textContent=c.tickets;saveToFirebase();updateBtn(CT);}
 function updB(i,f,v){var c=getT(CT).clients[CC];c.bottles[i][f]=f==='qty'?Math.max(1,parseInt(v)||1):v;if(f==='brand'){c.bottles[i].delivered=false;c.bottles[i].qty_out=0;}saveToFirebase();refTot();if(f==='brand')renderSheet();updateBtn(CT);}
+function setCustomPrice(i,val){var c=getT(CT).clients[CC];if(!c.bottles[i])return;c.bottles[i].custom_price=(val===''||val===null)?'':Math.max(0,parseInt(val)||0);saveToFirebase();refTot();updateBtn(CT);}
 // Marca/desmarca garrafa como saída (entregue)
 function togBottleOut(i){var c=getT(CT).clients[CC];var b=c.bottles[i];if(!b)return;if(b.delivered===undefined)b.delivered=true;var pend=bottlePending(b);if(pend>0){b.qty_out=parseInt(b.qty)||0;b.delivered=true;}else{b.qty_out=0;b.delivered=false;}saveToFirebase();renderSheet();updateBtn(CT);}
 function qB(i,d){
@@ -1820,7 +1830,7 @@ function updateVoucherDisplay(){
 }
 function refTot(){
   var c=getT(CT).clients[CC],tb=totB(c),al=allowedSofts(c),us=usedS(c),ov=us>al&&al>0;
-  var has600=c.bottles.some(function(b){return b.spirit&&SUPER[b.spirit]&&PRICES[b.brand]>=600;});
+  var has600=c.bottles.some(function(b){return b.spirit&&SUPER[b.spirit]&&bottlePrice(b)>=600;});
   var b=document.getElementById('tv-b'),a=document.getElementById('tv-a'),u=document.getElementById('tv-u');
   var mag=document.getElementById('tv-mag');
   if(b)b.textContent=tb;
@@ -1835,11 +1845,18 @@ function askClear(){showCov('Pulire tavolo','Cancellare tutti i clienti e le bot
 // - bottiglie: prezzo dal listino
 // - ticket: 300€ fisso (indipendente dalla quantità)
 // - soft extra (sopra il limite): 10€ ciascuno
+// Prezzo di una bottiglia: usa custom_price se presente (bottiglia manuale), altrimenti il listino
+function bottlePrice(b){
+  if(!b) return 0;
+  if(b.custom_price!==undefined && b.custom_price!==null && b.custom_price!=='') return parseInt(b.custom_price)||0;
+  return (b.brand && PRICES[b.brand]) ? PRICES[b.brand] : 0;
+}
+
 function totEur(c){
   var bottleEur=(c.bottles||[]).reduce(function(s,b){
     if(!b.spirit) return s;
     var qty=parseInt(b.qty)||0;
-    var p=b.brand&&PRICES[b.brand]?PRICES[b.brand]:0;
+    var p=bottlePrice(b);
     return s+qty*p;
   },0);
   var ticketEur=(c.tickets&&c.tickets>0)?300:0;
@@ -1940,7 +1957,7 @@ function renderReportData(active, el, isArchived){
       }
       var cEur=totEur(c);
       var bs=bots.map(function(b){
-        var price=b.brand&&PRICES[b.brand]?' ('+PRICES[b.brand]+'€)':'';
+        var price=bottlePrice(b)>0?' ('+bottlePrice(b)+'€)':'';
         return b.qty+'x '+b.spirit+(b.brand?' — '+b.brand:'')+price;
       }).join(', ');
       var tk=c.tickets>0?' 🎫 '+c.tickets+' ticket':'';
@@ -2377,7 +2394,7 @@ function generatePDF(ts){
           return;
         }
         var cVal = totEur(c);
-        var bs = bots.map(function(b){ var p=b.brand&&PRICES[b.brand]?' ('+PRICES[b.brand]+'€)':''; return b.qty+'x '+b.spirit+(b.brand?' — '+b.brand:'')+p; }).join(', ');
+        var bs = bots.map(function(b){ var p=bottlePrice(b)>0?' ('+bottlePrice(b)+'€)':''; return b.qty+'x '+b.spirit+(b.brand?' — '+b.brand:'')+p; }).join(', ');
         var tk = c.tickets>0?' · 🎫 '+c.tickets+' ticket':'';
         var pax = c.pax>0?' · 👥 '+c.pax:'';
         rows += '<tr class="drow"><td colspan="3">' + c.num + '° cliente' + (cVal>0?' · <b>'+fmtEur(cVal)+'</b>':'') + ': ' + (bs||'—') + tk + pax + '</td></tr>';
@@ -2598,7 +2615,7 @@ function aggregateTurns(turns){
           if(!b.spirit) return;
           var q=parseInt(b.qty)||0; bottles+=q;
           spC[b.spirit]=(spC[b.spirit]||0)+q;
-          value+=q*(b.brand&&PRICES[b.brand]?PRICES[b.brand]:0);
+          value+=q*bottlePrice(b);
         });
         if(c.tickets&&c.tickets>0) value+=300;
         var al=allowedSofts(c);
@@ -3645,7 +3662,7 @@ function generateMonthlyPDF(monthKey){
             var q=parseInt(b.qty)||0; totalBot+=q;
             brandC[b.brand]=(brandC[b.brand]||0)+q;
             catC[b.spirit]=(catC[b.spirit]||0)+q;
-            totalVal+=q*(PRICES[b.brand]||0);
+            totalVal+=q*bottlePrice(b);
           });
           if(c.tickets>0) totalVal+=300;
           var al=allowedSofts(c);
@@ -3683,7 +3700,7 @@ function generateMonthlyPDF(monthKey){
         var t=std[id]; if(!t||!t.clients) return;
         normalizeClients(t.clients).forEach(function(c){
           if(c.pr) return;
-          (c.bottles||[]).forEach(function(b){ if(b.spirit&&b.brand){var q=parseInt(b.qty)||0;iBot+=q;iVal+=q*(PRICES[b.brand]||0);} });
+          (c.bottles||[]).forEach(function(b){ if(b.spirit&&b.brand){var q=parseInt(b.qty)||0;iBot+=q;iVal+=q*bottlePrice(b);} });
         });
       });
       var d=tsToMilan(item.ts);
