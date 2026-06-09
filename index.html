@@ -995,6 +995,7 @@ function initFirebase() {
     migrateStoricoDates();
     setTimeout(correctSpecificDates, 2500);
     setTimeout(correctDatesV5, 4000);
+  setTimeout(correctDatesV7, 4500);
     setTimeout(seedVenerdi0804, 5500);
     setTimeout(seedSabato0905, 5700);
     setTimeout(seedVenerdi2905, 5900);
@@ -2827,8 +2828,39 @@ function transferTable(srcId, dstId){
   // Clear source
   delete TD[srcId];
   saveToFirebase();
+  // Migra la comanda in tempo reale (se la bottiglia non è ancora uscita)
+  migrateComanda(srcId, dstId);
   buildMap();
   showDragToast('Mesa '+ getLabel(srcId) +' → Mesa '+ getLabel(dstId) +' ✓', 2200);
+}
+
+// Sposta la comanda pendente da una mesa all'altra (aggiorna nome mesa, mantiene la notifica)
+function migrateComanda(srcId, dstId){
+  if(!dbComande) return;
+  dbComande.child(srcId).once('value', function(snap){
+    var c = snap.val();
+    // rimuove sempre la vecchia comanda della mesa di origine
+    dbComande.child(srcId).remove().catch(function(){});
+    if(!c) return; // nessuna comanda pendente da spostare
+    // aggiorna i dati con la nuova mesa e ricalcola dagli items reali della destinazione
+    var items = (typeof buildComandaItems==='function') ? buildComandaItems(dstId) : null;
+    var hasItems = items && (items.bottiglie.length || items.softs.length || items.extras.length);
+    if(!hasItems) return; // se non c'è nulla di pendente, non crea
+    var comanda = {
+      tavolo: dstId,
+      label: getLabel(dstId),
+      ts: c.ts || Date.now(),       // mantiene l'orario originale (resta in coda nello stesso posto)
+      from: c.from || DEVICE_ID,
+      from_name: c.from_name || (DEVICE_NAME||''),
+      status: c.status || 'pending',
+      migrated: Date.now(),
+      pax: items.pax,
+      bottiglie: items.bottiglie,
+      softs: items.softs,
+      extras: items.extras
+    };
+    dbComande.child(dstId).set(comanda).catch(function(e){console.warn('migrateComanda',e);});
+  });
 }
 
 // Attach drag handlers to a table button after buildMap
@@ -3185,6 +3217,64 @@ function seedSabato3005(){
 // Idempotente: se già alla data target, non fa nulla.
 // Flag: meta/dateCorrV6
 // ══════════════════════════════════════════════════════════
+
+// ── CORREZIONE V7: fix data 15→14 maggio + rimuove duplicato di oggi (8/6) ──
+function correctDatesV7(){
+  if(!dbStorico){ setTimeout(correctDatesV7, 1200); return; }
+  var metaRef = firebase.database().ref('meta/dateCorrV7');
+  metaRef.once('value', function(flagSnap){
+    if(flagSnap.val() === true) return;
+    dbStorico.once('value', function(snap){
+      var ops = [];
+      var removes = [];
+      // 1) Report "venerdì 15 maggio" (10 bottiglie, 5 tavoli) → "giovedì 14 maggio"
+      var newTs15 = 1778722200000; // 14 mag 03:30 CEST
+      snap.forEach(function(child){
+        var item = child.val();
+        if(!item || !item.ts) return;
+        var milan = tsToMilan(item.ts);
+        // identifica il report sbagliato: 15 maggio, 10 bottiglie, 5 tavoli
+        if(milan.getMonth()+1===5 && milan.getDate()===15 && item.bottiglie===10 && item.tavoli===5){
+          var ni = JSON.parse(JSON.stringify(item));
+          ni.ts = newTs15;
+          ni.date = buildDateLabel(tsToMilan(newTs15));
+          ops.push(dbStorico.child(String(newTs15)).set(ni));
+          if(String(item.ts)!==String(newTs15)) removes.push(String(item.ts));
+        }
+      });
+      // 2) Duplicato di oggi 8 giugno 2026: tieni solo UNO
+      var todays = [];
+      snap.forEach(function(child){
+        var item = child.val();
+        if(!item || !item.ts) return;
+        var milan = tsToMilan(item.ts);
+        if(milan.getFullYear()===2026 && milan.getMonth()+1===6 && milan.getDate()===8){
+          todays.push(child.key);
+        }
+      });
+      // se ci sono 2+ report di oggi, tieni quello con più bottiglie, rimuovi gli altri
+      if(todays.length > 1){
+        todays.sort(function(a,b){
+          var ia=snap.child(a).val()||{}, ib=snap.child(b).val()||{};
+          return (ib.bottiglie||0)-(ia.bottiglie||0); // più bottiglie prima
+        });
+        for(var j=1;j<todays.length;j++){ removes.push(todays[j]); }
+      }
+      Promise.all(ops).then(function(){
+        var rmOps = [];
+        removes.forEach(function(k){ rmOps.push(dbStorico.child(k).remove()); });
+        return Promise.all(rmOps);
+      }).then(function(){
+        metaRef.set(true);
+        console.log('Correzione V7 completata');
+        if(document.getElementById('page-chiusura') && document.getElementById('page-chiusura').classList.contains('on')){
+          loadStorico(); if(typeof renderAnalytics==='function') renderAnalytics();
+        }
+      }).catch(function(e){ console.warn('V7 errore:', e); });
+    });
+  });
+}
+
 function correctDatesV5(){
   if(!dbStorico){ setTimeout(correctDatesV5, 1200); return; }
   var metaRef = firebase.database().ref('meta/dateCorrV6');
@@ -3511,7 +3601,9 @@ function startComandeListener(){
     if(_shownComande[key]) return;
     _shownComande[key]=true;
     renderComandaNotif(key, c);
-    playAlertSound(); // suono solo all'apparizione
+    // Non suonare se è una comanda appena migrata da un'altra mesa (trasferimento)
+    var justMigrated = c.migrated && (Date.now()-c.migrated < 8000);
+    if(!justMigrated) playAlertSound();
   });
   // child_changed: aggiornamento in tempo reale (NO suono)
   dbComande.orderByChild('ts').on('child_changed', function(snap){
