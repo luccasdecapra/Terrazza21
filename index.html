@@ -2827,9 +2827,11 @@ function transferTable(srcId, dstId){
   TD[dstId] = JSON.parse(JSON.stringify(TD[srcId]));
   // Clear source
   delete TD[srcId];
+  // Evita che un sync in sospeso ricrei la vecchia comanda
+  if(typeof _comandaTimer!=='undefined') clearTimeout(_comandaTimer);
   saveToFirebase();
-  // Migra la comanda in tempo reale (se la bottiglia non è ancora uscita)
-  migrateComanda(srcId, dstId);
+  // Migra la comanda (dopo che TD si è assestato)
+  setTimeout(function(){ migrateComanda(srcId, dstId); }, 150);
   buildMap();
   showDragToast('Mesa '+ getLabel(srcId) +' → Mesa '+ getLabel(dstId) +' ✓', 2200);
 }
@@ -2838,14 +2840,13 @@ function transferTable(srcId, dstId){
 function migrateComanda(srcId, dstId){
   if(!dbComande) return;
   dbComande.child(srcId).once('value', function(snap){
-    var c = snap.val();
+    var c = snap.val() || {};
     // rimuove sempre la vecchia comanda della mesa di origine
     dbComande.child(srcId).remove().catch(function(){});
-    if(!c) return; // nessuna comanda pendente da spostare
-    // aggiorna i dati con la nuova mesa e ricalcola dagli items reali della destinazione
+    // Ricalcola gli items pendenti dalla mesa di destinazione (bottiglie non ancora uscite)
     var items = (typeof buildComandaItems==='function') ? buildComandaItems(dstId) : null;
     var hasItems = items && (items.bottiglie.length || items.softs.length || items.extras.length);
-    if(!hasItems) return; // se non c'è nulla di pendente, non crea
+    if(!hasItems) return; // se non c'è nulla di pendente, non crea/non sposta
     var comanda = {
       tavolo: dstId,
       label: getLabel(dstId),
