@@ -2258,9 +2258,17 @@ function getSessionRef() {
   return getMilanDate();
 }
 
-// Chiave sessione = PIN attivo — cambia solo quando cambia il PIN
+// Chiave sessione = GIORNO corrente (taglio alle 05:00) — la sessione
+// scade una volta al giorno: il PIN viene richiesto alla prima apertura
+// del giorno e resta valido per tutta la giornata e la notte (fino alle 05).
 function getSessionKey() {
-  return _sessionKey + '_' + getDailyPin();
+  var milan = getMilanDate();
+  var ref = new Date(milan.getTime());
+  if (ref.getHours() < 5) ref.setDate(ref.getDate() - 1); // madrugada = ancora il giorno di ieri
+  var dd = String(ref.getDate()).padStart(2, '0');
+  var mm = String(ref.getMonth() + 1).padStart(2, '0');
+  var yy = String(ref.getFullYear()).slice(-2);
+  return _sessionKey + '_d' + dd + mm + yy;
 }
 
 function isLoggedIn() {
