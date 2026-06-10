@@ -628,7 +628,8 @@ select:focus,input:focus{border-color:var(--gold2);}
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
           <div class="sec-lbl" style="margin:0;">Storico Turni</div>
           <button onclick="openMonthlyReport()" style="margin-left:auto;margin-right:6px;padding:6px 10px;background:var(--dark);color:var(--gold2);border:none;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:.03em;cursor:pointer;">📆 PDF Bott.</button>
-          <button onclick="openMonthlySoftReport()" style="margin-right:8px;padding:6px 10px;background:#1565C0;color:#fff;border:none;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:.03em;cursor:pointer;">🥤 PDF Soft</button>
+          <button onclick="openMonthlySoftReport()" style="margin-right:6px;padding:6px 10px;background:#1565C0;color:#fff;border:none;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:.03em;cursor:pointer;">🥤 PDF Soft</button>
+          <button onclick="exportStoricoBackup()" style="margin-right:8px;padding:6px 10px;background:#2E7D32;color:#fff;border:none;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:.03em;cursor:pointer;">💾 Backup</button>
           <button onclick="askClearStorico()" style="font-size:10px;font-weight:700;color:var(--red);background:none;border:1.5px solid rgba(192,57,43,.3);border-radius:20px;padding:4px 12px;cursor:pointer;letter-spacing:.06em;">Cancella storico</button>
         </div>
         <div id="storicoList"><div style="font-size:12px;color:var(--muted);text-align:center;padding:20px;">Caricamento...</div></div>
@@ -1073,7 +1074,13 @@ function initFirebase() {
     }
 
     _firebaseFirstLoad = false;
+    // Preserva le modifiche locali non ancora scritte (tavoli 'dirty' in attesa di flush)
+    var _localPending={};
+    try{
+      Object.keys(_dirtyTabs||{}).forEach(function(id){ if(TD[id]) _localPending[id]=TD[id]; });
+    }catch(e){}
     TD = normalizeTD(remote);
+    Object.keys(_localPending).forEach(function(id){ TD[id]=_localPending[id]; });
     saveLocal();
     buildMap();
     if(CT && document.getElementById('sheet').classList.contains('on')){
@@ -1128,12 +1135,32 @@ function clearLocal(){
 }
 
 var _saveTimer=null;
+// Tracciamento per-tavolo: scrive solo i tavoli modificati (evita che
+// due telefoni si sovrascrivano a vicenda salvando l'intera mappa)
+var _dirtyTabs={};
+var _deadTabs={};
+function markTabDirty(id){ if(id){ _dirtyTabs[id]=1; delete _deadTabs[id]; } }
+function markTabDead(id){ if(id){ _deadTabs[id]=1; delete _dirtyTabs[id]; } }
+
 function saveToFirebase(){
   // Salva subito in locale, poi sincronizza Firebase con debounce
   saveLocal();
+  // Di default, l'edit corrente riguarda il tavolo aperto (CT)
+  if(CT && TD[CT]) markTabDirty(CT);
   clearTimeout(_saveTimer);
   _saveTimer=setTimeout(function(){
-    if(db) db.set(TD).catch(function(e){console.warn('Firebase write error:',e);});
+    if(!db) return;
+    var patch={};
+    var has=false;
+    Object.keys(_dirtyTabs).forEach(function(id){
+      if(TD[id]){ patch[id]=JSON.parse(JSON.stringify(TD[id])); has=true; }
+    });
+    Object.keys(_deadTabs).forEach(function(id){
+      patch[id]=null; has=true; // null = rimuove il nodo su Firebase
+    });
+    _dirtyTabs={}; _deadTabs={};
+    if(!has) return;
+    db.update(patch).catch(function(e){console.warn('Firebase write error:',e);});
   },400);
   // Comanda in tempo reale: se il foglio è aperto, aggiorna la comanda del tavolo
   clearTimeout(_comandaTimer);
@@ -1216,6 +1243,11 @@ function loadStorico() {
       el.innerHTML = '<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px;">Nessun turno salvato.</div>';
       return;
     }
+    // Backup automatico silenzioso: copia dello storico salvata sul telefono
+    try{
+      var _bk={}; snap.forEach(function(ch){ _bk[ch.key]=ch.val(); });
+      localStorage.setItem('td21_backup_storico', JSON.stringify({savedAt:Date.now(), count:Object.keys(_bk).length, data:_bk}));
+    }catch(e){ /* quota piena: ignora, il backup manuale resta disponibile */ }
     // Deduplica per ts (evita duplicati)
     var seen = {};
     items = items.filter(function(it){ if(seen[it.ts]) return false; seen[it.ts]=1; return true; });
@@ -1480,6 +1512,7 @@ function showPage(name){
 }
 
 function askClearStorico(){
+  showPinModal(function(){
   showCov('Cancellare lo storico?','Eliminare tutti i turni salvati? Questa operazione non può essere annullata.',function(){
     dbStorico.remove()
       .then(function(){
@@ -1490,6 +1523,7 @@ function askClearStorico(){
         console.warn('Storico remove error:',e);
         showCov('Errore','Impossibile cancellare lo storico. Controlla la connessione.',function(){},true);
       });
+  });
   });
 }
 
@@ -1874,7 +1908,7 @@ function refTot(){
   updateBtn(CT);
   if(typeof updateVoucherDisplay==='function')updateVoucherDisplay();
 }
-function askClear(){showCov('Pulire tavolo','Cancellare tutti i clienti e le bottiglie di questo tavolo?',function(){delete TD[CT];CC=0;saveToFirebase();saveLocal();closeSheet();});}
+function askClear(){showCov('Pulire tavolo','Cancellare tutti i clienti e le bottiglie di questo tavolo?',function(){markTabDead(CT);delete TD[CT];CC=0;saveToFirebase();saveLocal();closeSheet();});}
 
 // Helper: calcola il valore totale in € di un cliente
 // - bottiglie: prezzo dal listino
@@ -2798,6 +2832,9 @@ function transferTable(srcId, dstId){
   TD[dstId] = JSON.parse(JSON.stringify(TD[srcId]));
   // Clear source
   delete TD[srcId];
+  // Salvataggio per-tavolo: destinazione scritta, origine rimossa
+  markTabDirty(dstId);
+  markTabDead(srcId);
   // Evita che un sync in sospeso ricrei la vecchia comanda
   if(typeof _comandaTimer!=='undefined') clearTimeout(_comandaTimer);
   saveToFirebase();
@@ -3889,6 +3926,53 @@ function generateMonthlySoftPDF(monthKey){
     showPdfOverlay(html);
   });
 }
+
+
+// ══════════════════════════════════════════════════════════
+// BACKUP STORICO — esporta un file JSON con tutto lo storico
+// ══════════════════════════════════════════════════════════
+function exportStoricoBackup(){
+  function doExport(obj, source){
+    var count = Object.keys(obj).length;
+    if(!count){ showDragToast('Nessun dato nello storico', 2000); return; }
+    var payload = { app:'Terrazza Duomo 21', exported:new Date().toISOString(), source:source, turni:count, storico:obj };
+    var d=new Date();
+    var fname='Backup Terrazza21 '+String(d.getDate()).padStart(2,'0')+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getFullYear()).slice(-2)+'.json';
+    try{
+      var blob=new Blob([JSON.stringify(payload,null,1)],{type:'application/json'});
+      var url=URL.createObjectURL(blob);
+      var a=document.createElement('a');
+      a.href=url; a.download=fname;
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1500);
+      showDragToast('💾 Backup esportato ('+count+' turni)', 2500);
+    }catch(e){ console.warn('backup export', e); showDragToast('Errore esportazione', 2000); }
+  }
+  // Preferisce i dati live da Firebase; fallback sulla copia locale
+  if(dbStorico){
+    dbStorico.once('value', function(snap){
+      var obj={}; snap.forEach(function(ch){ obj[ch.key]=ch.val(); });
+      if(Object.keys(obj).length){ doExport(obj,'firebase'); }
+      else {
+        try{
+          var bk=JSON.parse(localStorage.getItem('td21_backup_storico')||'null');
+          doExport(bk&&bk.data?bk.data:{}, 'locale');
+        }catch(e){ doExport({},'locale'); }
+      }
+    }, function(err){
+      try{
+        var bk=JSON.parse(localStorage.getItem('td21_backup_storico')||'null');
+        doExport(bk&&bk.data?bk.data:{}, 'locale');
+      }catch(e){ doExport({},'locale'); }
+    });
+  } else {
+    try{
+      var bk=JSON.parse(localStorage.getItem('td21_backup_storico')||'null');
+      doExport(bk&&bk.data?bk.data:{}, 'locale');
+    }catch(e){ doExport({},'locale'); }
+  }
+}
+
 
 window.addEventListener('DOMContentLoaded',function(){
   if(typeof updateSoundBtn==='function') updateSoundBtn();
