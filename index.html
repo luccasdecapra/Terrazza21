@@ -3522,12 +3522,13 @@ function syncComandaLive(id, editing){
   if(!dbComande || !id) return;
   var items=buildComandaItems(id);
   var hasItems = items && (items.bottiglie.length || items.softs.length || items.extras.length);
-  // Se il tavolo è chiuso e non ha pendenti → rimuove la comanda
-  if(!editing && !hasItems){
+  // La comanda esiste SOLO se c'è qualcosa da far uscire (bottiglie/soft/extra).
+  // Marcature amministrative (Conto Aperto, PR, nota, riserva, pax) NON creano
+  // notifiche né suoni: se non ci sono item pendenti, nessuna comanda.
+  if(!hasItems){
     dbComande.child(id).remove().catch(function(){});
     return;
   }
-  // Se è in editing ma vuoto → mostra comunque (In preparazione)
   // Recupera il ts esistente per non cambiare l'ordine
   dbComande.child(id).once('value', function(snap){
     var ex=snap.val();
