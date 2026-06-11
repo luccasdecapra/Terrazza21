@@ -3489,28 +3489,23 @@ function buildComandaItems(id){
   clients.forEach(function(c){
     totPax+=parseInt(c.pax)||0;
     (c.bottles||[]).forEach(function(b){
-      var bp=bottlePending(b);
-      if(bp>0){
-        var bq=parseInt(b.qty)||0;
-        var bo=(b.qty_out!==undefined&&b.qty_out!==null)?b.qty_out:0;
-        bottleLines.push({q:bp, n:b.brand, tot:bq, out:bo});
-      }
+      var bp=bottlePending(b); if(bp>0) bottleLines.push({q:bp, n:b.brand});
     });
     // Pack birra (Corona/Bud) come bottiglie: pending = pack - usciti
     var corPend=(c.corona_pack||0)-(c.corona_out||0);
-    if(corPend>0) bottleLines.push({q:corPend, n:'Pack Corona', tot:(c.corona_pack||0), out:(c.corona_out||0)});
+    if(corPend>0) bottleLines.push({q:corPend, n:'Pack Corona'});
     var budPend=(c.bud_pack||0)-(c.bud_out||0);
-    if(budPend>0) bottleLines.push({q:budPend, n:'Pack Bud', tot:(c.bud_pack||0), out:(c.bud_out||0)});
+    if(budPend>0) bottleLines.push({q:budPend, n:'Pack Bud'});
     // Soft pendenti = quantità attuale MENO quelli già usciti (softs_out)
     var sOut=c.softs_out||{};
     Object.keys(c.softs||{}).forEach(function(sid){
       var tot=c.softs[sid]||0;
       var out=sOut[sid]||0;
       var pending=tot-out;
-      if(pending<=0) return;
+      if(pending<=0) return; // notifica solo se c'è qualcosa di nuovo
       var sd=SOFTS.find(function(s){return s.id===sid;});
-      // tot/out: contesto mostrato in notifica quando parte è già uscita
-      softLines.push({q:pending, n:sd?sd.n:sid, tot:tot, out:out});
+      // Mostra SEMPRE il numero totale segnato sul tavolo (il conto lo fa la cambusa)
+      softLines.push({q:tot, n:sd?sd.n:sid});
     });
     // Extra non ancora usciti
     var eOut=c.extras_out||{};
@@ -3591,13 +3586,8 @@ function startComandeListener(){
 }
 
 function comandaBodyHtml(c){
-  // Riga item con contesto: "(di X totali · Y già usciti)" quando parte è già consegnata
   function itemRow(l){
-    var ctx='';
-    if(l.out>0 && l.tot>0){
-      ctx='<div style="font-size:9px;font-weight:700;color:#9a7820;margin-top:1px;">di '+l.tot+' totali \u00B7 '+l.out+' gi\u00E0 usciti</div>';
-    }
-    return '<div class="notif-item"><div class="notif-qty">'+l.q+'</div><div class="notif-name">'+l.n+ctx+'</div></div>';
+    return '<div class="notif-item"><div class="notif-qty">'+l.q+'</div><div class="notif-name">'+l.n+'</div></div>';
   }
   var body='';
   var paxN=(c.pax!==undefined&&c.pax!==null)?c.pax:0;
