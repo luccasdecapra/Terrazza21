@@ -3489,20 +3489,28 @@ function buildComandaItems(id){
   clients.forEach(function(c){
     totPax+=parseInt(c.pax)||0;
     (c.bottles||[]).forEach(function(b){
-      var bp=bottlePending(b); if(bp>0) bottleLines.push({q:bp, n:b.brand});
+      var bp=bottlePending(b);
+      if(bp>0){
+        var bq=parseInt(b.qty)||0;
+        var bo=(b.qty_out!==undefined&&b.qty_out!==null)?b.qty_out:0;
+        bottleLines.push({q:bp, n:b.brand, tot:bq, out:bo});
+      }
     });
     // Pack birra (Corona/Bud) come bottiglie: pending = pack - usciti
     var corPend=(c.corona_pack||0)-(c.corona_out||0);
-    if(corPend>0) bottleLines.push({q:corPend, n:'Pack Corona'});
+    if(corPend>0) bottleLines.push({q:corPend, n:'Pack Corona', tot:(c.corona_pack||0), out:(c.corona_out||0)});
     var budPend=(c.bud_pack||0)-(c.bud_out||0);
-    if(budPend>0) bottleLines.push({q:budPend, n:'Pack Bud'});
+    if(budPend>0) bottleLines.push({q:budPend, n:'Pack Bud', tot:(c.bud_pack||0), out:(c.bud_out||0)});
     // Soft pendenti = quantità attuale MENO quelli già usciti (softs_out)
     var sOut=c.softs_out||{};
     Object.keys(c.softs||{}).forEach(function(sid){
-      var pending=(c.softs[sid]||0)-(sOut[sid]||0);
+      var tot=c.softs[sid]||0;
+      var out=sOut[sid]||0;
+      var pending=tot-out;
       if(pending<=0) return;
       var sd=SOFTS.find(function(s){return s.id===sid;});
-      softLines.push({q:pending, n:sd?sd.n:sid});
+      // tot/out: contesto mostrato in notifica quando parte è già uscita
+      softLines.push({q:pending, n:sd?sd.n:sid, tot:tot, out:out});
     });
     // Extra non ancora usciti
     var eOut=c.extras_out||{};
@@ -3583,6 +3591,14 @@ function startComandeListener(){
 }
 
 function comandaBodyHtml(c){
+  // Riga item con contesto: "(di X totali · Y già usciti)" quando parte è già consegnata
+  function itemRow(l){
+    var ctx='';
+    if(l.out>0 && l.tot>0){
+      ctx='<div style="font-size:9px;font-weight:700;color:#9a7820;margin-top:1px;">di '+l.tot+' totali \u00B7 '+l.out+' gi\u00E0 usciti</div>';
+    }
+    return '<div class="notif-item"><div class="notif-qty">'+l.q+'</div><div class="notif-name">'+l.n+ctx+'</div></div>';
+  }
   var body='';
   var paxN=(c.pax!==undefined&&c.pax!==null)?c.pax:0;
   body+='<div class="notif-item" style="background:#fff7d6;border-color:#FFD700;"><div class="notif-qty">'+paxN+'</div><div class="notif-name">\u{1F464} Persone al tavolo</div></div>';
@@ -3590,17 +3606,17 @@ function comandaBodyHtml(c){
   if(c.bottiglie&&c.bottiglie.length){
     hasAny=true;
     body+='<div class="notif-sec">\u{1F37E} Bottiglie</div>';
-    c.bottiglie.forEach(function(l){ body+='<div class="notif-item"><div class="notif-qty">'+l.q+'</div><div class="notif-name">'+l.n+'</div></div>'; });
+    c.bottiglie.forEach(function(l){ body+=itemRow(l); });
   }
   if(c.softs&&c.softs.length){
     hasAny=true;
     body+='<div class="notif-sec">\u{1F964} Soft Drinks</div>';
-    c.softs.forEach(function(l){ body+='<div class="notif-item"><div class="notif-qty">'+l.q+'</div><div class="notif-name">'+l.n+'</div></div>'; });
+    c.softs.forEach(function(l){ body+=itemRow(l); });
   }
   if(c.extras&&c.extras.length){
     hasAny=true;
     body+='<div class="notif-sec">\u2728 Extra</div>';
-    c.extras.forEach(function(l){ body+='<div class="notif-item"><div class="notif-qty">'+l.q+'</div><div class="notif-name">'+l.n+'</div></div>'; });
+    c.extras.forEach(function(l){ body+=itemRow(l); });
   }
   if(!hasAny){
     body+='<div style="text-align:center;padding:8px;font-size:11px;font-weight:700;color:#9a7820;font-style:italic;">\u23F3 In preparazione...</div>';
