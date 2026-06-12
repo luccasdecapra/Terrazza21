@@ -1825,33 +1825,16 @@ function qB(i,d){
   var c=getT(CT).clients[CC];
   c.bottles[i].qty=Math.max(1,(parseInt(c.bottles[i].qty)||1)+d);
   var el=document.getElementById('bq'+i);if(el)el.textContent=c.bottles[i].qty;
+  // I contatori dei soft NON vengono MAI azzerati dalle bottiglie:
+  // il numero segnato sul tavolo è il totale della serata (il conto delle
+  // consumazioni per bottiglia lo fa la squadra, non l'app).
   if(d>0){
-    // Aumentando: arquiva os soft da leva atual (vão p/ relatório) e zera contador visual
-    if(c.softs && Object.keys(c.softs).some(function(k){return c.softs[k]>0;})){
-      c.softs_done=c.softs_done||{};
-      Object.keys(c.softs).forEach(function(k){
-        if(c.softs[k]>0) c.softs_done[k]=(c.softs_done[k]||0)+c.softs[k];
-      });
-      c.softs={};
-    }
-    // Nova leva: tutto ciò che c'era PRIMA (soft + extra della leva precedente)
-    // viene segnato come GIÀ USCITO, così non riappare nella nuova comanda.
-    // I soft attuali sono già stati archiviati sopra (c.softs ora è {}),
-    // ma marchiamo comunque gli extra correnti come usciti.
-    c.extras_out=c.extras_out||{};
-    Object.keys(c.extras||{}).forEach(function(eid){
-      if(c.extras[eid]) c.extras_out[eid]=true;
-    });
-    // I soft: azzerati visivamente (c.softs={}), quindi softs_out riparte pulito
-    c.softs_out={};
-    // La bottiglia ora è tracciata; le unità già uscite restano in qty_out,
-    // quindi solo la NUOVA unità risulta da consegnare (qty - qty_out).
+    // La nuova unità risulta da consegnare (qty - qty_out)
     if(c.bottles[i].delivered===undefined) c.bottles[i].delivered=false;
     if(c.bottles[i].qty_out===undefined) c.bottles[i].qty_out=0;
     renderSheet();
   } else if(d<0){
-    // Diminuindo: zera os soft visuais e aggiusta qty_out se supera la qty
-    c.softs={};
+    // Diminuendo: aggiusta solo qty_out se supera la nuova qty
     var nq=parseInt(c.bottles[i].qty)||0;
     if(c.bottles[i].qty_out!==undefined && c.bottles[i].qty_out>nq) c.bottles[i].qty_out=nq;
     renderSheet();
@@ -1869,14 +1852,8 @@ function mSofts(c){
 }
 function addB(){
   var c=getT(CT).clients[CC];
-  // Archivia i soft della leva corrente: restano nel report ma il contatore visivo si azzera
-  if(c.softs && Object.keys(c.softs).some(function(k){return c.softs[k]>0;})){
-    c.softs_done=c.softs_done||{};
-    Object.keys(c.softs).forEach(function(k){
-      if(c.softs[k]>0) c.softs_done[k]=(c.softs_done[k]||0)+c.softs[k];
-    });
-    c.softs={};
-  }
+  // Aggiungere una bottiglia NON tocca i contatori dei soft:
+  // il numero sul tavolo resta il totale della serata.
   c.bottles.push({spirit:'',brand:'',qty:1});
   saveToFirebase();renderSheet();
 }
@@ -2864,7 +2841,7 @@ function migrateComanda(srcId, dstId){
     var srcStatus = c.status || 'pending';
     // Ricalcola gli items pendenti dalla mesa di destinazione (bottiglie non ancora uscite)
     var items = (typeof buildComandaItems==='function') ? buildComandaItems(dstId) : null;
-    var hasItems = items && (items.bottiglie.length || items.softs.length || items.extras.length);
+    var hasItems = items && items.hasPending;
     // Funzione che rimuove la vecchia e (se serve) crea la nuova
     function applyMove(){
       dbComande.child(srcId).remove().catch(function(){});
@@ -3484,7 +3461,7 @@ function buildComandaItems(id){
   var t=TD[id];
   if(!t||!t.clients) return null;
   var clients=normalizeClients(t.clients);
-  var bottleLines=[]; var softLines=[]; var extraLines=[]; var totPax=0;
+  var bottleLines=[]; var softLines=[]; var extraLines=[]; var totPax=0; var hasPend=false;
   var EXTRA_NAMES={shot:'Shot',sale:'Sale',limone:'Limone',arancia:'Arancia',sciropo:'Sciropo',frutta:'P. Frutta',pizza:'Pizza',sandwich:'Club Sandwich',patatine:'Patatine'};
   clients.forEach(function(c){
     totPax+=parseInt(c.pax)||0;
@@ -3496,15 +3473,16 @@ function buildComandaItems(id){
     if(corPend>0) bottleLines.push({q:corPend, n:'Pack Corona'});
     var budPend=(c.bud_pack||0)-(c.bud_out||0);
     if(budPend>0) bottleLines.push({q:budPend, n:'Pack Bud'});
-    // Soft pendenti = quantità attuale MENO quelli già usciti (softs_out)
+    // SOFT: la notifica SPECCHIA il tavolo — mostra TUTTI i soft segnati
+    // (il numero che vede l'ingresso è il numero che vede la cambusa).
+    // 'pending' serve solo come TRIGGER (c'è qualcosa di nuovo da far uscire?).
     var sOut=c.softs_out||{};
     Object.keys(c.softs||{}).forEach(function(sid){
       var tot=c.softs[sid]||0;
+      if(tot<=0) return;
       var out=sOut[sid]||0;
-      var pending=tot-out;
-      if(pending<=0) return; // notifica solo se c'è qualcosa di nuovo
+      if(tot-out>0) hasPend=true; // qualcosa di nuovo → trigger
       var sd=SOFTS.find(function(s){return s.id===sid;});
-      // Mostra SEMPRE il numero totale segnato sul tavolo (il conto lo fa la cambusa)
       softLines.push({q:tot, n:sd?sd.n:sid});
     });
     // Extra non ancora usciti
@@ -3513,7 +3491,8 @@ function buildComandaItems(id){
       if(c.extras[eid]&&!eOut[eid]&&EXTRA_NAMES[eid]) extraLines.push({q:1, n:EXTRA_NAMES[eid]});
     });
   });
-  return {bottiglie:bottleLines, softs:softLines, extras:extraLines, pax:totPax};
+  if(bottleLines.length||extraLines.length) hasPend=true; // bottiglie/pack/extra pendenti = trigger
+  return {bottiglie:bottleLines, softs:softLines, extras:extraLines, pax:totPax, hasPending:hasPend};
 }
 
 // Sincronizza in tempo reale la comanda del tavolo verso il Firebase
@@ -3521,10 +3500,11 @@ function buildComandaItems(id){
 function syncComandaLive(id, editing){
   if(!dbComande || !id) return;
   var items=buildComandaItems(id);
-  var hasItems = items && (items.bottiglie.length || items.softs.length || items.extras.length);
-  // La comanda esiste SOLO se c'è qualcosa da far uscire (bottiglie/soft/extra).
+  // La comanda esiste SOLO se c'è qualcosa di NUOVO da far uscire (hasPending).
+  // Il CONTENUTO però specchia il tavolo (tutti i soft segnati).
   // Marcature amministrative (Conto Aperto, PR, nota, riserva, pax) NON creano
-  // notifiche né suoni: se non ci sono item pendenti, nessuna comanda.
+  // notifiche né suoni.
+  var hasItems = items && items.hasPending;
   if(!hasItems){
     dbComande.child(id).remove().catch(function(){});
     return;
