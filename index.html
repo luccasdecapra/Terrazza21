@@ -1367,7 +1367,7 @@ function bottleSofts(b){
 function allowedSofts(c){return (c.bottles||[]).reduce(function(s,b){return s+bottleSofts(b);},0);}
 // supB mantido por compatibilidade (conta garrafas spirit)
 function supB(c){return c.bottles.filter(function(b){return b.spirit&&SUPER[b.spirit];}).reduce(function(s,b){return s+(parseInt(b.qty)||0);},0);}
-function usedS(c){return Object.values(c.softs).reduce(function(s,v){return s+(v||0);},0);}
+function usedS(c){var m=mSofts(c);return Object.keys(m).reduce(function(s,k){return s+(m[k]||0);},0);}
 function lastClientHasD(id){
   if(!TD[id])return false;
   var clients=TD[id].clients;
@@ -3640,11 +3640,15 @@ function evadiComanda(key, tavolo){
           var bl=Array.isArray(c.bottles)?c.bottles:(c.bottles?Object.keys(c.bottles).map(function(x){return c.bottles[x];}):[]);
           bl.forEach(function(b){ if(b&&b.spirit&&b.brand&&b.delivered!==undefined){ b.qty_out=parseInt(b.qty)||0; b.delivered=true; } });
           c.bottles=bl;
-          // Soft: segna tutti gli attuali come usciti
-          c.softs_out=c.softs_out||{};
+          // Soft: ARCHIVIA la mandata — i soft di questa bottiglia vanno nello
+          // storico (softs_done, contano nei report) e il contatore si azzera,
+          // pronto per la prossima bottiglia con i suoi nuovi soft.
+          c.softs_done=c.softs_done||{};
           Object.keys(c.softs||{}).forEach(function(sid){
-            if(c.softs[sid]>0) c.softs_out[sid]=c.softs[sid];
+            if(c.softs[sid]>0) c.softs_done[sid]=(c.softs_done[sid]||0)+c.softs[sid];
           });
+          c.softs={};
+          c.softs_out={};
           // Extra: segna gli attivi come usciti
           c.extras_out=c.extras_out||{};
           Object.keys(c.extras||{}).forEach(function(eid){
