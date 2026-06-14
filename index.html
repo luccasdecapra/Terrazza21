@@ -3352,43 +3352,43 @@ function playAlertSound(){
   stopAlertSound();
   var ctx=getAudioCtx();
   if(!ctx) return;
-  var dur=10; // secondi (o finché qualcuno tocca lo schermo)
-  var beepEvery=0.55; // un bip ogni 0.55s
-  var n=Math.floor(dur/beepEvery);
-  // Compressore per massimizzare il volume percepito senza distorcere
+  // Suono breve stile notifica iPhone (tri-tono): suona UNA volta e finisce.
+  // Compressore + gain per restare ben udibile anche in sala rumorosa.
   var comp=ctx.createDynamicsCompressor();
-  comp.threshold.value=-10; comp.knee.value=4; comp.ratio.value=12;
+  comp.threshold.value=-12; comp.knee.value=6; comp.ratio.value=10;
   comp.attack.value=0.002; comp.release.value=0.2;
   var master=ctx.createGain();
   master.gain.value=1.0;
   comp.connect(master); master.connect(ctx.destination);
   _alertNodes.push(comp); _alertNodes.push(master);
-  for(var i=0;i<n;i++){
-    (function(t){
-      var id=setTimeout(function(){
-        try{
-          // 4 oscillatori sovrapposti = molto più forte (richiesta: 5x)
-          var freqs=[880,1320,1760,660];
-          var g=ctx.createGain();
-          g.gain.setValueAtTime(0.0001,ctx.currentTime);
-          g.gain.exponentialRampToValueAtTime(1.0,ctx.currentTime+0.015);
-          g.gain.setValueAtTime(1.0,ctx.currentTime+0.30);
-          g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.45);
-          g.connect(comp);
-          freqs.forEach(function(fr){
-            var o=ctx.createOscillator();
-            o.type=(fr===660)?'square':'sine'; // square = più aggressivo
-            o.frequency.value=fr;
-            o.connect(g);
-            o.start();
-            o.stop(ctx.currentTime+0.5);
-          });
-        }catch(e){}
-      }, t*beepEvery*1000);
-      _alertTimers.push(id);
-    })(i);
-  }
-  if(navigator.vibrate) navigator.vibrate([300,100,300,100,300,100,300,100,300,100,300,100,300]);
+  // Tri-tono ascendente, note tipo campanello messaggio
+  var t0=ctx.currentTime+0.02;
+  var notes=[
+    {f:1318.5, t:0.00, d:0.13}, // Mi6
+    {f:1760.0, t:0.12, d:0.13}, // La6
+    {f:2093.0, t:0.24, d:0.30}  // Do7 (coda più lunga)
+  ];
+  notes.forEach(function(nt){
+    try{
+      var g=ctx.createGain();
+      var st=t0+nt.t;
+      g.gain.setValueAtTime(0.0001, st);
+      g.gain.exponentialRampToValueAtTime(0.9, st+0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, st+nt.d);
+      g.connect(comp);
+      // due oscillatori per nota: fondamentale (triangle, dolce) + ottava sotto leggera
+      var o1=ctx.createOscillator();
+      o1.type='triangle'; o1.frequency.value=nt.f;
+      o1.connect(g); o1.start(st); o1.stop(st+nt.d+0.05);
+      var o2=ctx.createOscillator();
+      o2.type='sine'; o2.frequency.value=nt.f/2;
+      var g2=ctx.createGain(); g2.gain.value=0.35;
+      o2.connect(g2); g2.connect(g);
+      o2.start(st); o2.stop(st+nt.d+0.05);
+    }catch(e){}
+  });
+  // Vibrazione breve come una notifica (no più il martellamento lungo)
+  if(navigator.vibrate) navigator.vibrate([60,40,90]);
 }
 function stopAlertSound(){
   _alertTimers.forEach(function(id){clearTimeout(id);});
