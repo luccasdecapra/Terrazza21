@@ -3973,6 +3973,30 @@ function exportStoricoBackup(){
 }
 
 
+
+// ── SEED turno sabato 13 giugno 2026 (inserito manualmente da lista bottiglie) ──
+function seedSabato1306(){
+  if(!dbStorico){ setTimeout(seedSabato1306, 800); return; }
+  try{
+    if(localStorage.getItem('td21_seed_1306')==='1') return;
+  }catch(e){}
+  var TURNO = {"ts":1781384400000,"date":"sabato 13 giugno 2026","time":"04:00","tavoli":6,"bottiglie":12,"data":{"4":{"clients":[{"num":1,"pax":0,"bottles":[{"brand":"Louis Jadot Bourgogne Blanc 2022","spirit":"Vino Bianco","qty":1,"qty_out":1,"delivered":true,"custom_price":""},{"brand":"Belvedere 70cl","spirit":"Vodka","qty":1,"qty_out":1,"delivered":true,"custom_price":""}],"softs":{},"softs_out":{},"softs_done":{},"extras":{},"extras_out":{},"tickets":0,"voucher":0,"pr":false,"conto_aperto":false,"acqua_piccola":0,"acqua_piccola_pay":true,"corona_pack":0,"corona_out":0,"bud_pack":0,"bud_out":0}]},"6":{"clients":[{"num":1,"pax":0,"bottles":[{"brand":"Belvedere 70cl","spirit":"Vodka","qty":1,"qty_out":1,"delivered":true,"custom_price":""},{"brand":"Veuve Clicquot Yellow Label","spirit":"Champagne","qty":1,"qty_out":1,"delivered":true,"custom_price":""}],"softs":{},"softs_out":{},"softs_done":{},"extras":{},"extras_out":{},"tickets":0,"voucher":0,"pr":false,"conto_aperto":false,"acqua_piccola":0,"acqua_piccola_pay":true,"corona_pack":0,"corona_out":0,"bud_pack":0,"bud_out":0}]},"55":{"clients":[{"num":1,"pax":0,"bottles":[{"brand":"Volcán de mi Tierra Blanco","spirit":"Tequila","qty":1,"qty_out":1,"delivered":true,"custom_price":""}],"softs":{},"softs_out":{},"softs_done":{},"extras":{},"extras_out":{},"tickets":0,"voucher":0,"pr":false,"conto_aperto":false,"acqua_piccola":0,"acqua_piccola_pay":true,"corona_pack":0,"corona_out":0,"bud_pack":0,"bud_out":0}]},"1":{"clients":[{"num":1,"pax":0,"bottles":[{"brand":"Veuve Clicquot Yellow Label","spirit":"Champagne","qty":1,"qty_out":1,"delivered":true,"custom_price":""}],"softs":{},"softs_out":{},"softs_done":{},"extras":{},"extras_out":{},"tickets":0,"voucher":0,"pr":false,"conto_aperto":false,"acqua_piccola":0,"acqua_piccola_pay":true,"corona_pack":0,"corona_out":0,"bud_pack":0,"bud_out":0}]},"8":{"clients":[{"num":1,"pax":0,"bottles":[{"brand":"Malfy Limone 70cl","spirit":"Gin","qty":1,"qty_out":1,"delivered":true,"custom_price":""}],"softs":{},"softs_out":{},"softs_done":{},"extras":{},"extras_out":{},"tickets":0,"voucher":0,"pr":false,"conto_aperto":false,"acqua_piccola":0,"acqua_piccola_pay":true,"corona_pack":0,"corona_out":0,"bud_pack":0,"bud_out":0}]},"D5":{"clients":[{"num":1,"pax":0,"bottles":[{"brand":"Malfy Originale 70cl","spirit":"Gin","qty":3,"qty_out":3,"delivered":true,"custom_price":""},{"brand":"Belvedere 70cl","spirit":"Vodka","qty":1,"qty_out":1,"delivered":true,"custom_price":""},{"brand":"Belvedere Magnum 175cl","spirit":"Vodka","qty":1,"qty_out":1,"delivered":true,"custom_price":""}],"softs":{},"softs_out":{},"softs_done":{},"extras":{},"extras_out":{},"tickets":0,"voucher":0,"pr":false,"conto_aperto":false,"acqua_piccola":0,"acqua_piccola_pay":true,"corona_pack":0,"corona_out":0,"bud_pack":0,"bud_out":0}]}}};
+  dbStorico.orderByChild('ts').equalTo(TURNO.ts).once('value', function(snap){
+    if(snap.exists()){
+      // già presente: marca flag e non duplica
+      try{ localStorage.setItem('td21_seed_1306','1'); }catch(e){}
+      return;
+    }
+    dbStorico.push(TURNO, function(err){
+      if(!err){
+        try{ localStorage.setItem('td21_seed_1306','1'); }catch(e){}
+        if(typeof loadStorico==='function') setTimeout(loadStorico, 500);
+      }
+    });
+  });
+}
+setTimeout(seedSabato1306, 1500);
+
 window.addEventListener('DOMContentLoaded',function(){
   if(typeof updateSoundBtn==='function') updateSoundBtn();
   // Mostra subito i dati locali (se esistono) senza attendere Firebase
