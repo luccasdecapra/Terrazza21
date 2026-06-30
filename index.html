@@ -102,6 +102,7 @@ body{font-family:-apple-system,"SF Pro Text","Helvetica Neue",Arial,sans-serif;c
 .ctab.on{background:var(--dark);color:#fff;border-color:var(--dark);}
 .ctx{opacity:.5;font-size:10px;}
 .ctnew{padding:6px 11px;border-radius:20px;border:2px dashed var(--border2);background:none;font-size:11px;font-weight:700;color:var(--gold);cursor:pointer;}
+.bottle-times{font-size:10px;font-weight:700;color:var(--muted);padding:5px 4px 1px;letter-spacing:.01em;}
 .bcard{background:var(--bg2);border:2px solid var(--border);border-radius:var(--rsm);padding:11px;margin-bottom:8px;}
 .br1{display:flex;gap:7px;align-items:center;margin-bottom:8px;}
 .br2{display:flex;gap:7px;align-items:center;}
@@ -251,7 +252,7 @@ select:focus,input:focus{border-color:var(--gold2);}
 .settings-save{width:100%;padding:14px;background:var(--dark);color:var(--gold2);border:none;border-radius:12px;font-size:14px;font-weight:800;letter-spacing:.04em;cursor:pointer;}
 
 /* NOTIFICHE COMANDE (telefono sala) — stack in alto */
-.notif-stack{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9500;display:flex;flex-direction:column;align-items:center;gap:5px;padding:max(6px,env(safe-area-inset-top,6px)) 8px 8px;pointer-events:none;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.notif-stack{position:fixed;top:0;left:0;right:0;z-index:9500;display:flex;flex-direction:column;align-items:center;gap:5px;padding:max(6px,env(safe-area-inset-top,6px)) 8px 8px;pointer-events:none;max-height:100vh;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .notif-stack:empty{display:none;}
 .notif-card{pointer-events:auto;background:#fff;border-radius:10px;width:100%;max-width:430px;box-shadow:0 4px 16px rgba(0,0,0,.25);overflow:hidden;border:2px solid #FFD700;animation:notifIn .28s cubic-bezier(.2,.9,.3,1.2);flex-shrink:0;}
 @keyframes notifIn{from{transform:translateY(-16px) scale(.95);opacity:0;}to{transform:translateY(0) scale(1);opacity:1;}}
@@ -260,6 +261,15 @@ select:focus,input:focus{border-color:var(--gold2);}
 .notif-hdr-tav{font-size:15px;font-weight:900;color:#1a1510;}
 .notif-pax{font-size:10px;font-weight:800;color:#5c4a00;background:rgba(26,21,16,.14);padding:1px 7px;border-radius:9px;}
 .notif-time{font-size:8px;font-weight:700;color:#5c4a00;opacity:.8;}
+.notif-min{width:26px;height:26px;border:none;border-radius:7px;background:rgba(26,21,16,.16);color:#1a1510;font-size:18px;font-weight:900;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+.notif-min:active{background:rgba(26,21,16,.3);}
+.notif-card.notif-mini{max-width:170px;align-self:center;cursor:pointer;}
+.notif-card.notif-mini .notif-body,.notif-card.notif-mini .notif-foot{display:none;}
+.notif-card.notif-mini .notif-pax{display:none;}
+.notif-card.notif-mini .notif-min{transform:rotate(0);}
+.notif-card.notif-mini .notif-min::before{content:'\2191';}
+.notif-card.notif-mini .notif-min{font-size:0;}
+.notif-card.notif-mini .notif-min::before{font-size:15px;}
 .notif-body{padding:5px 10px;}
 .notif-sec{font-size:7px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#9a7820;margin:4px 0 2px;}
 .notif-sec:first-child{margin-top:0;}
@@ -1692,7 +1702,13 @@ function renderSheet(){
     var outLbl = (_pend>0) ? 'Segna come uscita' : '✓ Bottiglia uscita';
     var outCheckMark = (_pend>0) ? '' : '✓';
     var bottleOut = (b.spirit && b.brand) ? ('<div class="bottle-out-row'+outDone+'" onclick="togBottleOut('+i+')"><div class="bottle-out-check">'+outCheckMark+'</div><span class="bottle-out-lbl">'+outLbl+'</span></div>') : '';
-    bottles+='<div class="bcard"><div class="br1"><select style="flex:1" onchange="updBSpirit('+i+',this.value)">'+opts+'</select><button class="bdel" onclick="remB('+i+')">✕</button></div><div class="br2">'+brandField+'<div class="qctrl"><button onclick="qB('+i+',-1)">−</button><span id="bq'+i+'">'+(b.qty||1)+'</span><button onclick="qB('+i+',1)">+</button></div></div>'+customPriceField+bottleOut+'</div>';
+    var bottleTimes = '';
+    if(b.spirit && b.brand && (b.inserted_at || b.out_at)){
+      var _ins = b.inserted_at ? clockMilan(b.inserted_at) : '--:--';
+      var _out = b.out_at ? clockMilan(b.out_at) : '--:--';
+      bottleTimes = '<div class="bottle-times">\u{1F551} Inserita '+_ins+'  \u00B7  \u2705 Uscita '+_out+'</div>';
+    }
+    bottles+='<div class="bcard"><div class="br1"><select style="flex:1" onchange="updBSpirit('+i+',this.value)">'+opts+'</select><button class="bdel" onclick="remB('+i+')">✕</button></div><div class="br2">'+brandField+'<div class="qctrl"><button onclick="qB('+i+',-1)">−</button><span id="bq'+i+'">'+(b.qty||1)+'</span><button onclick="qB('+i+',1)">+</button></div></div>'+customPriceField+bottleOut+bottleTimes+'</div>';
   });
   var tickets=c.tickets||0;
   var pax=c.pax||0;
@@ -1817,10 +1833,33 @@ function addC(){var t=getT(CT),n=Math.max.apply(null,t.clients.map(function(c){r
 function askRemC(i){var t=getT(CT);showCov('Rimuovere cliente','Rimuovere il '+t.clients[i].num+'° cliente?',function(){t.clients.splice(i,1);if(CC>=t.clients.length)CC=t.clients.length-1;saveToFirebase();renderSheet();});}
 function updBSpirit(i,v){var c=getT(CT).clients[CC];c.bottles[i].spirit=v;c.bottles[i].brand='';c.bottles[i].delivered=false;c.bottles[i].qty_out=0;if(v!=='✏️ Personalizzata'){c.bottles[i].custom_price='';}saveToFirebase();refTot();renderSheet();updateBtn(CT);}
 function chgTick(d){var c=getT(CT).clients[CC];c.tickets=Math.max(0,(c.tickets||0)+d);var el=document.getElementById('tv-tick');if(el)el.textContent=c.tickets;saveToFirebase();updateBtn(CT);}
-function updB(i,f,v,reRender){if(f==='brand')window._lastTypeTs=Date.now();var c=getT(CT).clients[CC];c.bottles[i][f]=f==='qty'?Math.max(1,parseInt(v)||1):v;if(f==='brand'){c.bottles[i].delivered=false;c.bottles[i].qty_out=0;}saveToFirebase();refTot();if(f==='brand'&&reRender)renderSheet();updateBtn(CT);}
+function updB(i,f,v,reRender){if(f==='brand')window._lastTypeTs=Date.now();var c=getT(CT).clients[CC];c.bottles[i][f]=f==='qty'?Math.max(1,parseInt(v)||1):v;if(f==='brand'){c.bottles[i].delivered=false;c.bottles[i].qty_out=0;if(v&&!c.bottles[i].inserted_at)c.bottles[i].inserted_at=Date.now();}saveToFirebase();refTot();if(f==='brand'&&reRender)renderSheet();updateBtn(CT);}
 function setCustomPrice(i,val){window._lastTypeTs=Date.now();var c=getT(CT).clients[CC];if(!c.bottles[i])return;c.bottles[i].custom_price=(val===''||val===null)?'':Math.max(0,parseInt(val)||0);saveToFirebase();refTot();updateBtn(CT);}
 // Marca/desmarca garrafa como saída (entregue)
-function togBottleOut(i){var c=getT(CT).clients[CC];var b=c.bottles[i];if(!b)return;if(b.delivered===undefined)b.delivered=true;var pend=bottlePending(b);if(pend>0){b.qty_out=parseInt(b.qty)||0;b.delivered=true;}else{b.qty_out=0;b.delivered=false;}saveToFirebase();renderSheet();updateBtn(CT);}
+function togBottleOut(i){
+  var c=getT(CT).clients[CC];var b=c.bottles[i];if(!b)return;
+  if(b.delivered===undefined)b.delivered=true;
+  var pend=bottlePending(b);
+  if(pend>0){
+    // Segna la bottiglia come uscita
+    b.qty_out=parseInt(b.qty)||0; b.delivered=true; b.out_at=Date.now();
+    // Archivia la mandata come fa la notifica (evadiComanda): soft nello
+    // storico (softs_done) e contatore azzerato; extra e pack segnati usciti.
+    // Così il tavolo non resta giallo per soft/extra non spuntati.
+    c.softs_done=c.softs_done||{};
+    Object.keys(c.softs||{}).forEach(function(sid){ if(c.softs[sid]>0) c.softs_done[sid]=(c.softs_done[sid]||0)+c.softs[sid]; });
+    c.softs={};
+    c.softs_out={};
+    c.extras_out=c.extras_out||{};
+    Object.keys(c.extras||{}).forEach(function(eid){ if(c.extras[eid]) c.extras_out[eid]=true; });
+    if(c.corona_pack>0) c.corona_out=c.corona_pack;
+    if(c.bud_pack>0) c.bud_out=c.bud_pack;
+  } else {
+    // Annulla l'uscita SOLO della bottiglia (i soft restano come sono)
+    b.qty_out=0; b.delivered=false; b.out_at=null;
+  }
+  saveToFirebase();renderSheet();updateBtn(CT);
+}
 function qB(i,d){
   var c=getT(CT).clients[CC];
   c.bottles[i].qty=Math.max(1,(parseInt(c.bottles[i].qty)||1)+d);
@@ -2963,6 +3002,10 @@ document.addEventListener('touchstart', function(e){
 var GIORNI = ['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
 var MESI = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
 
+function clockMilan(ts){
+  try{ var d=tsToMilan(ts); return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0'); }
+  catch(e){ return '--:--'; }
+}
 function tsToMilan(ts){
   var now = new Date(ts);
   var jan = new Date(now.getFullYear(),0,1), jul = new Date(now.getFullYear(),6,1);
@@ -3561,8 +3604,10 @@ function startComandeListener(){
   dbComande.orderByChild('ts').on('child_removed', function(snap){
     var key=snap.key;
     delete _shownComande[key];
+    delete _minComande[key];
     var el=document.getElementById('notif-'+key);
     if(el) el.remove();
+    if(typeof applyStackPointer==='function') applyStackPointer();
   });
 }
 
@@ -3607,10 +3652,41 @@ function renderComandaNotif(key, c){
   card.className='notif-card';
   card.id='notif-'+key;
   card.innerHTML=
-    '<div class="notif-hdr"><div class="notif-hdr-l">'+liveDot+'<span class="notif-hdr-tav">Tav '+(c.label||c.tavolo)+'</span><span class="notif-pax">\u{1F464} '+paxN+'</span></div><div class="notif-time">'+hh+'</div></div>'+
+    '<div class="notif-hdr"><div class="notif-hdr-l">'+liveDot+'<span class="notif-hdr-tav">Tav '+(c.label||c.tavolo)+'</span><span class="notif-pax">\u{1F464} '+paxN+'</span></div>'+
+      '<div style="display:flex;align-items:center;gap:8px;"><div class="notif-time">'+hh+'</div>'+
+      '<button class="notif-min" onclick="toggleMinComanda(\''+key+'\')" title="Riduci">\u2013</button></div></div>'+
     '<div class="notif-body" id="notif-body-'+key+'">'+comandaBodyHtml(c)+'</div>'+
     '<div class="notif-foot"><button class="notif-btn" onclick="evadiComanda(\''+key+'\',\''+c.tavolo+'\')">\u2713 Bottiglia uscita</button></div>';
+  // ripristina lo stato minimizzato se l'utente l'aveva ridotta
+  if(_minComande[key]) card.classList.add('notif-mini');
+  // toccando la pillola ridotta si riapre
+  card.addEventListener('click', function(ev){
+    if(card.classList.contains('notif-mini') && !ev.target.closest('.notif-min')){
+      toggleMinComanda(key);
+    }
+  });
   stack.appendChild(card);
+  applyStackPointer();
+}
+
+// Stato minimizzato per comanda (per non bloccare l'accesso ai tavoli)
+var _minComande={};
+function toggleMinComanda(key){
+  var card=document.getElementById('notif-'+key);
+  if(!card) return;
+  var mini=card.classList.toggle('notif-mini');
+  _minComande[key]=mini;
+  applyStackPointer();
+}
+// Quando TUTTE le comande sono minimizzate, lo stack non cattura i tocchi
+// (così si possono toccare i tavoli sotto). Se almeno una è aperta, blocca.
+function applyStackPointer(){
+  // Lo stack resta sempre pass-through: ogni card cattura i propri tocchi
+  // (pointer-events:auto sulle card), così l'area libera sotto le notifiche
+  // ridotte lascia toccare i tavoli.
+  var stack=document.getElementById('notifStack');
+  if(!stack) return;
+  stack.style.pointerEvents='none';
 }
 
 // Aggiorna una notifica esistente senza ricrearla (no suono)
@@ -3638,7 +3714,7 @@ function evadiComanda(key, tavolo){
           if(!c) return;
           // Bottiglie
           var bl=Array.isArray(c.bottles)?c.bottles:(c.bottles?Object.keys(c.bottles).map(function(x){return c.bottles[x];}):[]);
-          bl.forEach(function(b){ if(b&&b.spirit&&b.brand&&b.delivered!==undefined){ b.qty_out=parseInt(b.qty)||0; b.delivered=true; } });
+          bl.forEach(function(b){ if(b&&b.spirit&&b.brand&&b.delivered!==undefined){ b.qty_out=parseInt(b.qty)||0; b.delivered=true; if(!b.out_at)b.out_at=Date.now(); } });
           c.bottles=bl;
           // Soft: ARCHIVIA la mandata — i soft di questa bottiglia vanno nello
           // storico (softs_done, contano nei report) e il contatore si azzera,
@@ -3996,6 +4072,8 @@ function seedSabato1306(){
   });
 }
 setTimeout(seedSabato1306, 1500);
+
+
 
 window.addEventListener('DOMContentLoaded',function(){
   if(typeof updateSoundBtn==='function') updateSoundBtn();
