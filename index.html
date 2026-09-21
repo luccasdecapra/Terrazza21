@@ -61,6 +61,10 @@ body{font-family:-apple-system,"SF Pro Text","Helvetica Neue",Arial,sans-serif;c
 
 /* Base table button — always gold border when free */
 .t{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:var(--rsm);border:2px solid var(--gold2);background:#ffffff;cursor:pointer;position:relative;transition:all .15s;width:100%;aspect-ratio:1;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;-webkit-touch-callout:none;min-height:0;color:var(--dark);-webkit-appearance:none;}
+#mapFloor5 .t{aspect-ratio:1;height:auto;}
+#mapFloor5 .t.rnd{border-radius:50%;}
+#mapFloor5 .tname{font-size:14px;}
+#mapFloor5 .fmark{display:flex;align-items:center;justify-content:center;height:56px;font-size:9px;font-weight:800;letter-spacing:.14em;color:var(--muted);border:1px dashed var(--border2);border-radius:var(--rsm);}
 .t:active{transform:scale(.91);}
 /* OCCUPIED — red fill + red border */
 .t.act{background:#e53935;border-color:#c62828;}
@@ -482,6 +486,16 @@ select:focus,input:focus{border-color:var(--gold2);}
 <div class="pages">
   <div class="page on" id="page-map">
 
+    <!-- SELETTORE PIANO -->
+    <div id="floorToggle" onclick="toggleFloor5()" style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 13px;margin-bottom:9px;background:var(--bg3);border:2px solid var(--border2);border-radius:var(--rsm);cursor:pointer;user-select:none;-webkit-user-select:none;">
+      <span style="font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--dark);">🏢 5° Piano</span>
+      <span id="floorSw" style="width:46px;height:26px;border-radius:14px;background:var(--border2);position:relative;transition:background .18s;flex-shrink:0;">
+        <span id="floorKnob" style="position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .18s;"></span>
+      </span>
+    </div>
+
+    <div id="mapMain">
+
     <div class="sec-lbl">Sezione Principale</div>
     <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:5px;margin-bottom:5px;">
       <button class="t" id="tb-D1"  onclick="openSheet('D1')"><span class="tname">D1</span></button>
@@ -592,6 +606,44 @@ select:focus,input:focus{border-color:var(--gold2);}
           <button class="t" id="tb-82" onclick="openSheet('82')"><span class="tname">82</span></button>
           <button class="t" id="tb-83" onclick="openSheet('83')"><span class="tname">83</span></button>
         </div>
+      </div>
+    </div>
+
+    </div><!-- mapMain -->
+
+    <!-- ══ 5° PIANO ══ -->
+    <div id="mapFloor5" style="display:none;">
+      <div class="sec-lbl">5° Piano</div>
+      <div style="display:grid;grid-template-columns:56px 1fr 56px;gap:5px;align-items:center;justify-content:space-between;">
+
+        <button class="t rnd" id="tb-Q8" onclick="openSheet('Q8')"><span class="tname">8</span></button>
+        <div class="fmark">DJ</div>
+        <button class="t" id="tb-Q7" onclick="openSheet('Q7')"><span class="tname">7</span></button>
+
+        <button class="t" id="tb-Q9" onclick="openSheet('Q9')"><span class="tname">9</span></button>
+        <div></div>
+        <button class="t" id="tb-Q6" onclick="openSheet('Q6')"><span class="tname">6</span></button>
+
+        <div></div>
+        <div></div>
+        <button class="t" id="tb-Q5" onclick="openSheet('Q5')"><span class="tname">5</span></button>
+
+        <button class="t" id="tb-Q10" onclick="openSheet('Q10')"><span class="tname">10</span></button>
+        <div></div>
+        <button class="t" id="tb-Q4" onclick="openSheet('Q4')"><span class="tname">4</span></button>
+
+        <button class="t" id="tb-Q11" onclick="openSheet('Q11')"><span class="tname">11</span></button>
+        <div></div>
+        <button class="t" id="tb-Q3" onclick="openSheet('Q3')"><span class="tname">3</span></button>
+
+        <button class="t" id="tb-Q12" onclick="openSheet('Q12')"><span class="tname">12</span></button>
+        <div></div>
+        <button class="t" id="tb-Q2" onclick="openSheet('Q2')"><span class="tname">2</span></button>
+
+        <button class="t rnd" id="tb-Q13" onclick="openSheet('Q13')"><span class="tname">13</span></button>
+        <div class="fmark">BANCO</div>
+        <button class="t" id="tb-Q1" onclick="openSheet('Q1')"><span class="tname">1</span></button>
+
       </div>
     </div>
 
@@ -752,6 +804,7 @@ select:focus,input:focus{border-color:var(--gold2);}
       </div>
 
       <div class="settings-id">ID dispositivo: <span id="deviceIdShow"></span></div>
+      <div class="settings-id">Utente: <b id="currentUserLbl">—</b> <button onclick="showUserSelect(true)" style="margin-left:8px;padding:4px 10px;background:var(--dark);color:var(--gold2);border:none;border-radius:7px;font-size:10px;font-weight:800;cursor:pointer;">Cambia utente</button></div>
       <div class="settings-id">Versione app: <span id="appVersionLbl">—</span></div>
     </div>
     <div class="settings-foot">
@@ -907,7 +960,7 @@ var BRANDS={
     'Chateau d\'Esclans Whispering Angel 2024',
     'Antinori-Bolgheri Scalabrone Doc'
   ],
-  Altro:['Campari 70cl'],
+  Altro:['Campari 70cl','Aperol Spritz Set'],
   Amari:['Jägermeister 70cl','Baileys 70cl','Fernet-Branca 70cl']
 };
 
@@ -975,12 +1028,17 @@ var PRICES={
 };
 
 var MAGNUM_BRANDS={'Belvedere Magnum 175cl':1};
+var OPEN_PRICE_BRANDS={'Aperol Spritz Set':1}; // prezzo inserito a mano
 var SPIRITS=['Vodka','Gin','Whiskey','Rum','Tequila','Cognac','Champagne','Prosecco','Vino Bianco','Vino Rosso','Vino Rosé','Amari','Altro','✏️ Personalizzata'];
 var SUPER={Vodka:1,Gin:1,Whiskey:1,Rum:1,Tequila:1,Cognac:1,Altro:1,'✏️ Personalizzata':1};
-var LABELS={G1G2:'G1 + G2', G3G4:'G3 + G4', L1S:'L1 Sinistra', L1D:'L1 Destra', L2S:'L2 Sinistra', L2D:'L2 Destra'};
-var ALL_IDS=['D1','D2','D3','D4','D5','10','9','8','7','6','5','4','2','10A','9A','8A','7A','6A','5A','4A','1','J','G7','G6','G5','G3G4','G1G2','L1S','L1D','L2S','L2D','E7','E8','E3','E4','51','52','53','54','55','56','T1','T3','T4','81','82','83'];
+var LABELS={Q1:'1 · 5°P', Q2:'2 · 5°P', Q3:'3 · 5°P', Q4:'4 · 5°P', Q5:'5 · 5°P',
+  Q6:'6 · 5°P', Q7:'7 · 5°P', Q8:'8 · 5°P', Q9:'9 · 5°P', Q10:'10 · 5°P',
+  Q11:'11 · 5°P', Q12:'12 · 5°P', Q13:'13 · 5°P',
+  G1G2:'G1 + G2', G3G4:'G3 + G4', L1S:'L1 Sinistra', L1D:'L1 Destra', L2S:'L2 Sinistra', L2D:'L2 Destra'};
+var ALL_IDS=['D1','D2','D3','D4','D5','10','9','8','7','6','5','4','2','10A','9A','8A','7A','6A','5A','4A','1','J','G7','G6','G5','G3G4','G1G2','L1S','L1D','L2S','L2D','E7','E8','E3','E4','51','52','53','54','55','56','T1','T3','T4','81','82','83',
+  'Q1','Q2','Q3','Q4','Q5','Q6','Q7','Q8','Q9','Q10','Q11','Q12','Q13'];
 
-var APP_VERSION='22.07.26-2';
+var APP_VERSION='21.09.26-7';
 var TD={},CT=null,CC=0,CCB=null;
 
 var db = null;
@@ -1012,6 +1070,8 @@ function initFirebase() {
   db = firebase.database().ref('tavoli');
   dbStorico = firebase.database().ref('storico');
   dbComande = firebase.database().ref('comande');
+  loadUsers();
+  initFloorSync();
   startComandeListener();
 
   // Trigger storico load as soon as Firebase is ready
@@ -1228,17 +1288,37 @@ function saveStorico(snapshot) {
     });
   }catch(e){console.warn('consolidate softs error',e);}
 
+  // CHIAVE DETERMINISTICA PER SERATA: ancorata alle 04:00 del giorno in cui
+  // la serata è iniziata. Qualsiasi telefono, a qualsiasi ora della stessa
+  // notte, produce LA STESSA chiave → impossibile creare turni doppi.
+  var refNight = new Date(refDate);
+  refNight.setHours(4, 0, 0, 0);
+  var nightTs = refNight.getTime();
+
   var entry = {
     date: dateStr,
     time: timeStr,
-    ts: ts,
+    closed_by: (typeof CURRENT_USER!=='undefined' && CURRENT_USER) ? CURRENT_USER : '',
+    ts: nightTs,
     tavoli: activeTables.length,
     bottiglie: totalBottles,
     data: snapshot
   };
 
   if(!dbStorico){ console.warn('dbStorico not ready'); return; }
-  dbStorico.child(String(ts)).set(entry).catch(function(e) { console.warn('Storico save error:', e); });
+  dbStorico.child(String(nightTs)).set(entry).then(function(){
+    // Pulizia: rimuove eventuali vecchi turni della STESSA serata salvati
+    // con chiavi diverse (residui del vecchio sistema)
+    dbStorico.once('value', function(snap){
+      snap.forEach(function(ch){
+        var v = ch.val();
+        if (!v || ch.key === String(nightTs)) return;
+        if (String(v.date || '') === dateStr) {
+          dbStorico.child(ch.key).remove().catch(function(){});
+        }
+      });
+    });
+  }).catch(function(e) { console.warn('Storico save error:', e); });
 
   // Storico illimitato — nessuna cancellazione automatica
 }
@@ -1290,7 +1370,7 @@ function openStoricoModal(ts) {
   fetchStoricoByTs(ts, function(item) {
     if (!item){ showErrorBanner('Turno non trovato (ts '+ts+')'); return; }
     try{
-    document.getElementById('smodTitle').textContent = item.date + ' · ' + item.time;
+    document.getElementById('smodTitle').textContent = item.date + ' · ' + item.time + (item.closed_by ? ' · ' + item.closed_by : '');
 
     var storedTD = item.data || {};
     var active = Object.keys(storedTD).filter(function(k) {
@@ -1304,7 +1384,7 @@ function openStoricoModal(ts) {
     var _dtSum=0, _dtN=0;
     active.forEach(function(id) {
       normalizeClients(storedTD[id].clients).forEach(function(c) {
-        (c.bottles || []).forEach(function(b) { if (!b.spirit) return; var q = parseInt(b.qty) || 0; totalG += q;
+        expandBottles(c.bottles).forEach(function(b) { if (!b.spirit) return; var q = parseInt(b.qty) || 0; totalG += q;
         if(b.inserted_at && b.out_at && b.out_at>b.inserted_at){ _dtSum+=(b.out_at-b.inserted_at); _dtN++; } var _k=(b.spirit==='✏️ Personalizzata'&&b.brand)?b.brand:b.spirit; spC[_k] = (spC[_k] || 0) + q; });
         Object.keys(c.softs || {}).forEach(function(sid) { var v = c.softs[sid]; totalS += v; var sd = SOFTS.find(function(s) { return s.id === sid; }); if (sd && v > 0) sfC[sd.n] = (sfC[sd.n] || 0) + v; });
       });
@@ -1316,7 +1396,7 @@ function openStoricoModal(ts) {
       var tot = clients.reduce(function(s, c) { return s + totB(c); }, 0);
       rows += '<tr><td class="rmt">Tavolo ' + getLabel(id) + '</td><td class="rnum">' + (tot > 0 ? tot : '—') + '</td></tr>';
       clients.forEach(function(c) {
-        var bots = (c.bottles || []).filter(function(b) { return b.spirit; });
+        var bots = expandBottles(c.bottles).filter(function(b) { return b.spirit; });
         if (!bots.length && !c.tickets) return;
         var bs = bots.map(function(b) { return b.qty + 'x ' + bottleLabel(b); }).join(', ');
         var tk = c.tickets > 0 ? ' 🎫 ' + c.tickets + ' ticket' : '';
@@ -1372,7 +1452,43 @@ function requestCloseSheet() {
 function getT(id){return getTableData(id);}
 function mkC(n){return{num:n,bottles:[{spirit:'',brand:'',qty:1}],softs:{},tickets:0,pax:0,extras:{},pr:false,voucher:0,conto_aperto:false,acqua_piccola:0,acqua_piccola_pay:true,corona_pack:0,bud_pack:0,corona_out:0,bud_out:0};}
 function getTableData(id){if(!TD[id])TD[id]={clients:[mkC(1)]};if(!TD[id].nota)TD[id].nota='';if(typeof TD[id].reserva==='undefined')TD[id].reserva=false;return TD[id];}
-function totB(c){return c.bottles.reduce(function(s,b){return s+(b.spirit?(parseInt(b.qty)||0):0);},0);}
+
+// ══════════════════════════════════════════════════════════
+// SET COMPOSTI — un item venduto che corrisponde a più bottiglie
+// fisiche. In tavolo resta UN item (un solo prezzo); nei conteggi,
+// rapporti e notifiche viene espanso nelle bottiglie reali.
+// Il prezzo resta tutto sulla prima parte → il valore non raddoppia.
+// ══════════════════════════════════════════════════════════
+var SET_PARTS = {
+  'Aperol Spritz Set': [
+    {brand:'Aperol',      spirit:'Altro'},
+    {brand:'Biancavigna', spirit:'Prosecco'}
+  ]
+};
+function bottleParts(b){
+  if(!b) return [];
+  var parts = SET_PARTS[b.brand];
+  if(!parts) return [b];
+  return parts.map(function(p, idx){
+    var x = JSON.parse(JSON.stringify(b));
+    x.brand = p.brand;
+    x.spirit = p.spirit;
+    x._set = b.brand;
+    if(idx > 0){
+      x.custom_price = 0;          // prezzo solo sulla prima parte
+      delete x.inserted_at;        // orari contati una volta sola
+      delete x.out_at;
+    }
+    return x;
+  });
+}
+function expandBottles(arr){
+  var out = [];
+  (arr || []).forEach(function(b){ bottleParts(b).forEach(function(x){ out.push(x); }); });
+  return out;
+}
+
+function totB(c){return expandBottles(c.bottles).reduce(function(s,b){return s+(b.spirit?(parseInt(b.qty)||0):0);},0);}
 function bottleSofts(b){
   // Garrafas >= 600€ = 16 softs cada; resto = 8 softs cada
   if(!b.spirit||!SUPER[b.spirit]) return 0;
@@ -1697,7 +1813,7 @@ function renderSheet(){
     }
     // Campo prezzo manuale per bottiglie Personalizzate
     var customPriceField='';
-    if(b.spirit==='✏️ Personalizzata'){
+    if(b.spirit==='✏️ Personalizzata' || OPEN_PRICE_BRANDS[b.brand]){
       customPriceField='<div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;background:var(--gold-bg);border:2px solid var(--gold2);border-radius:8px;">'+
         '<span style="font-size:12px;font-weight:700;color:var(--gold);flex:1;">💰 Prezzo bottiglia</span>'+
         '<input type="number" min="0" step="50" placeholder="0" value="'+((b.custom_price!==undefined&&b.custom_price!==null&&b.custom_price!=='')?b.custom_price:'')+'" onchange="setCustomPrice('+i+',this.value)" style="width:90px;padding:6px 8px;background:var(--bg3);border:2px solid var(--border2);border-radius:6px;color:var(--dark);font-family:-apple-system,sans-serif;font-size:15px;font-weight:700;text-align:center;-webkit-appearance:none;outline:none;"/>'+
@@ -1713,7 +1829,9 @@ function renderSheet(){
     if(b.spirit && b.brand && (b.inserted_at || b.out_at)){
       var _ins = b.inserted_at ? clockMilan(b.inserted_at) : '--:--';
       var _out = b.out_at ? clockMilan(b.out_at) : '--:--';
-      bottleTimes = '<div class="bottle-times">\u{1F551} Inserita '+_ins+'  \u00B7  \u2705 Uscita '+_out+'</div>';
+      var _insBy = b.by ? ' ('+b.by+')' : '';
+      var _outBy = b.out_by ? ' ('+b.out_by+')' : '';
+      bottleTimes = '<div class="bottle-times">\u{1F551} Inserita '+_ins+_insBy+'  \u00B7  \u2705 Uscita '+_out+_outBy+'</div>';
     }
     bottles+='<div class="bcard"><div class="br1"><select style="flex:1" onchange="updBSpirit('+i+',this.value)">'+opts+'</select><button class="bdel" onclick="remB('+i+')">✕</button></div><div class="br2">'+brandField+'<div class="qctrl"><button onclick="qB('+i+',-1)">−</button><span id="bq'+i+'">'+(b.qty||1)+'</span><button onclick="qB('+i+',1)">+</button></div></div>'+customPriceField+bottleOut+bottleTimes+'</div>';
   });
@@ -1840,7 +1958,7 @@ function addC(){var t=getT(CT),n=Math.max.apply(null,t.clients.map(function(c){r
 function askRemC(i){var t=getT(CT);showCov('Rimuovere cliente','Rimuovere il '+t.clients[i].num+'° cliente?',function(){t.clients.splice(i,1);if(CC>=t.clients.length)CC=t.clients.length-1;saveToFirebase();renderSheet();});}
 function updBSpirit(i,v){var c=getT(CT).clients[CC];c.bottles[i].spirit=v;c.bottles[i].brand='';c.bottles[i].delivered=false;c.bottles[i].qty_out=0;if(v!=='✏️ Personalizzata'){c.bottles[i].custom_price='';}saveToFirebase();refTot();renderSheet();updateBtn(CT);}
 function chgTick(d){var c=getT(CT).clients[CC];c.tickets=Math.max(0,(c.tickets||0)+d);var el=document.getElementById('tv-tick');if(el)el.textContent=c.tickets;saveToFirebase();updateBtn(CT);}
-function updB(i,f,v,reRender){if(f==='brand')window._lastTypeTs=Date.now();var c=getT(CT).clients[CC];c.bottles[i][f]=f==='qty'?Math.max(1,parseInt(v)||1):v;if(f==='brand'){c.bottles[i].delivered=false;c.bottles[i].qty_out=0;if(v&&!c.bottles[i].inserted_at)c.bottles[i].inserted_at=Date.now();}saveToFirebase();refTot();if(f==='brand'&&reRender)renderSheet();updateBtn(CT);}
+function updB(i,f,v,reRender){if(f==='brand')window._lastTypeTs=Date.now();var c=getT(CT).clients[CC];c.bottles[i][f]=f==='qty'?Math.max(1,parseInt(v)||1):v;if(f==='brand'){c.bottles[i].delivered=false;c.bottles[i].qty_out=0;if(c.bottles[i].spirit!=='✏️ Personalizzata'&&!OPEN_PRICE_BRANDS[v])c.bottles[i].custom_price='';if(v&&!c.bottles[i].inserted_at){c.bottles[i].inserted_at=Date.now();c.bottles[i].by=CURRENT_USER||'';}}saveToFirebase();refTot();if(f==='brand'&&reRender)renderSheet();updateBtn(CT);}
 function setCustomPrice(i,val){window._lastTypeTs=Date.now();var c=getT(CT).clients[CC];if(!c.bottles[i])return;c.bottles[i].custom_price=(val===''||val===null)?'':Math.max(0,parseInt(val)||0);saveToFirebase();refTot();updateBtn(CT);}
 // Marca/desmarca garrafa como saída (entregue)
 function togBottleOut(i){
@@ -1849,7 +1967,7 @@ function togBottleOut(i){
   var pend=bottlePending(b);
   if(pend>0){
     // Segna la bottiglia come uscita
-    b.qty_out=parseInt(b.qty)||0; b.delivered=true; b.out_at=Date.now();
+    b.qty_out=parseInt(b.qty)||0; b.delivered=true; b.out_at=Date.now(); b.out_by=CURRENT_USER||'';
     // Archivia la mandata come fa la notifica (evadiComanda): soft nello
     // storico (softs_done) e contatore azzerato; extra e pack segnati usciti.
     // Così il tavolo non resta giallo per soft/extra non spuntati.
@@ -2024,7 +2142,7 @@ function renderReportData(active, el, isArchived){
     var clients=normalizeClients(TD[id].clients);
     clients.forEach(function(c){
       if(c.pr) return; // Offerta PR: escluso dai totali
-      (c.bottles||[]).forEach(function(b){if(!b.spirit)return;var q=parseInt(b.qty)||0;totalG+=q;var _k=(b.spirit==='✏️ Personalizzata'&&b.brand)?b.brand:b.spirit;spC[_k]=(spC[_k]||0)+q;});
+      expandBottles(c.bottles).forEach(function(b){if(!b.spirit)return;var q=parseInt(b.qty)||0;totalG+=q;var _k=(b.spirit==='✏️ Personalizzata'&&b.brand)?b.brand:b.spirit;spC[_k]=(spC[_k]||0)+q;});
       var _msR=mSofts(c);Object.keys(_msR).forEach(function(sid){var v=_msR[sid];totalS+=v;var sd=SOFTS.find(function(s){return s.id===sid;});if(sd&&v>0)sfC[sd.n]=(sfC[sd.n]||0)+v;});
       totalEur+=totEur(c);
     });
@@ -2044,7 +2162,7 @@ function renderReportData(active, el, isArchived){
       '</td>'+
     '</tr>';
     clients.forEach(function(c){
-      var bots=(c.bottles||[]).filter(function(b){return b.spirit;});
+      var bots=expandBottles(c.bottles).filter(function(b){return b.spirit;});
       var _msR2=mSofts(c);var sfts=Object.keys(_msR2).filter(function(sid){return _msR2[sid]>0;}).map(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});return(_msR2[sid])+'x '+(d?d.n:sid);}).join(', ');
       var extrasLabels=['shot','sale','limone','arancia','sciropo','frutta','pizza','sandwich','patatine'];
       var extrasNames={shot:'Shot',sale:'Sale',limone:'Limone',arancia:'Arancia',sciropo:'Sciropo',frutta:'P. Frutta (40€)',pizza:'Pizza (25€)',sandwich:'Club Sandwich (27€)',patatine:'Patatine (10€)'};
@@ -2105,7 +2223,7 @@ function buildTxt(){
   active.forEach(function(id){
     normalizeClients(TD[id].clients).forEach(function(c){
       if(c.pr) return; // Offerta: esclusa dai totali
-      c.bottles.forEach(function(b){if(!b.spirit)return;var q=parseInt(b.qty)||0;totalG+=q;var _k=(b.spirit==='✏️ Personalizzata'&&b.brand)?b.brand:b.spirit;spC[_k]=(spC[_k]||0)+q;});
+      expandBottles(c.bottles).forEach(function(b){if(!b.spirit)return;var q=parseInt(b.qty)||0;totalG+=q;var _k=(b.spirit==='✏️ Personalizzata'&&b.brand)?b.brand:b.spirit;spC[_k]=(spC[_k]||0)+q;});
       var _msB=mSofts(c);Object.keys(_msB).forEach(function(sid){var d=SOFTS.find(function(s){return s.id===sid;});if(d&&_msB[sid]>0)sfC[d.n]=(sfC[d.n]||0)+_msB[sid];});
     });
   });
@@ -2118,7 +2236,7 @@ function buildTxt(){
     var lbl=getLabel(id);
     txt+='\n🪑 *Tavolo '+lbl+'*'+(tableEurTxt?' — *'+fmtEur(tableEurTxt)+'*':'')+' ('+tot+' bottigl'+(tot===1?'ia':'ie')+')\n';
     clients.forEach(function(c){
-      var bots=c.bottles.filter(function(b){return b.spirit;});
+      var bots=expandBottles(c.bottles).filter(function(b){return b.spirit;});
       if(!bots.length&&!(c.tickets>0))return;
       if(c.pr){txt+='  '+c.num+'° cliente [OFFERTA]: '+bots.map(function(b){return b.qty+'x '+b.spirit+(b.brand?' ('+b.brand+')':'');}).join(', ')+'\n';return;}
       if(bots.length)txt+='  '+c.num+'° cliente: '+bots.map(function(b){return b.qty+'x '+b.spirit+(b.brand?' ('+b.brand+')':'');}).join(', ')+'\n';
@@ -2322,6 +2440,7 @@ function initLogin() {
 
   if (isLoggedIn()) {
     screen.classList.add('hidden');
+    setTimeout(function(){ showUserSelect(); }, 400);
     return;
   }
 
@@ -2374,7 +2493,7 @@ function initLogin() {
       if (_loginEntered === getDailyPin()) {
         markLoggedIn();
         disp.style.color = '#81C784';
-        setTimeout(function() { screen.classList.add('hidden'); }, 300);
+        setTimeout(function() { screen.classList.add('hidden'); showUserSelect(); }, 300);
       } else {
         err.textContent = 'Codice errato — riprova';
         disp.style.color = '#e57373';
@@ -2500,7 +2619,7 @@ function generatePDF(ts){
     active.forEach(function(id){
       normalizeClients(storedTD[id].clients).forEach(function(c){
         if(c.pr) return;
-        (c.bottles||[]).forEach(function(b){ if(!b.spirit) return; var q=parseInt(b.qty)||0; totalG+=q; spC[b.spirit]=(spC[b.spirit]||0)+q; });
+        expandBottles(c.bottles).forEach(function(b){ if(!b.spirit) return; var q=parseInt(b.qty)||0; totalG+=q; spC[b.spirit]=(spC[b.spirit]||0)+q; });
         Object.keys(c.softs||{}).forEach(function(sid){ var v=c.softs[sid]; totalS+=v; var sd=SOFTS.find(function(s){return s.id===sid;}); if(sd&&v>0) sfC[sd.n]=(sfC[sd.n]||0)+v; });
         totalVal += totEur(c);
       });
@@ -2514,7 +2633,7 @@ function generatePDF(ts){
       var tableVal = clients.reduce(function(s,c){return s+(c.pr?0:totEur(c));},0);
       rows += '<tr><td class="rmt">Tavolo ' + getLabel(id) + '</td><td class="rnum">' + (tableVal>0?fmtEur(tableVal):'—') + '</td><td class="rnum">' + (tot>0?tot:'—') + '</td></tr>';
       clients.forEach(function(c){
-        var bots = (c.bottles||[]).filter(function(b){return b.spirit;});
+        var bots = expandBottles(c.bottles).filter(function(b){return b.spirit;});
         if(!bots.length&&!c.tickets) return;
         if(c.pr){
           rows += '<tr class="drow"><td colspan="3"><span class="pr-badge-print">OFFERTA</span>' + c.num + '° cliente: ' + bots.map(function(b){return b.qty+'x '+b.spirit+(b.brand?' — '+b.brand:'');}).join(', ') + '</td></tr>';
@@ -2572,7 +2691,7 @@ function generatePDF(ts){
       '<div class="header">'+
         '<div class="logo-title">Terrazza <b>21</b></div>'+
         '<div class="logo-sub">Lounge Bar · Milano</div>'+
-        '<div class="header-date">📅 ' + (item.date||'') + ' · ' + (item.time||'') + '</div>'+
+        '<div class="header-date">📅 ' + (item.date||'') + ' · ' + (item.time||'') + (item.closed_by ? ' · 👤 ' + item.closed_by : '') + '</div>'+
       '</div>'+
       '<div class="kpis">'+
         '<div class="kpi gold"><div class="kval big">' + fmtEur(totalVal) + '</div><div class="klbl">Valore Totale</div></div>'+
@@ -2715,7 +2834,7 @@ function aggregateTurns(turns){
       var t=std[id]; if(!t||!t.clients) return;
       normalizeClients(t.clients).forEach(function(c){
         if(c.pr) return;
-        (c.bottles||[]).forEach(function(b){
+        expandBottles(c.bottles).forEach(function(b){
           if(!b.spirit) return;
           var q=parseInt(b.qty)||0; bottles+=q;
           spC[b.spirit]=(spC[b.spirit]||0)+q;
@@ -3508,6 +3627,7 @@ function openSettings(){
   document.getElementById('deviceNameInput').value=DEVICE_NAME;
   document.getElementById('deviceIdShow').textContent=DEVICE_ID;
   var _v=document.getElementById('appVersionLbl'); if(_v)_v.textContent=APP_VERSION;
+  var _u=document.getElementById('currentUserLbl'); if(_u)_u.textContent=CURRENT_USER||'—';
   _salaModeTmp=SALA_MODE;
   document.getElementById('salaToggleRow').classList.toggle('on', _salaModeTmp);
   ov.classList.add('on');
@@ -3573,7 +3693,7 @@ function buildComandaItems(id){
   clients.forEach(function(c){
     totPaxAll+=parseInt(c.pax)||0;
     var _paxBefore=bottleLines.length+softLines.length+extraLines.length;
-    (c.bottles||[]).forEach(function(b){
+    expandBottles(c.bottles).forEach(function(b){
       var bp=bottlePending(b); if(bp>0) bottleLines.push({q:bp, n:b.brand});
     });
     // Pack birra (Corona/Bud) come bottiglie: pending = pack - usciti
@@ -3785,7 +3905,7 @@ function evadiComanda(key, tavolo){
           if(!c) return;
           // Bottiglie
           var bl=Array.isArray(c.bottles)?c.bottles:(c.bottles?Object.keys(c.bottles).map(function(x){return c.bottles[x];}):[]);
-          bl.forEach(function(b){ if(b&&b.spirit&&b.brand&&b.delivered!==undefined){ b.qty_out=parseInt(b.qty)||0; b.delivered=true; if(!b.out_at)b.out_at=Date.now(); } });
+          bl.forEach(function(b){ if(b&&b.spirit&&b.brand&&b.delivered!==undefined){ b.qty_out=parseInt(b.qty)||0; b.delivered=true; if(!b.out_at){b.out_at=Date.now(); b.out_by=CURRENT_USER||'';} } });
           c.bottles=bl;
           // Soft: ARCHIVIA la mandata — i soft di questa bottiglia vanno nello
           // storico (softs_done, contano nei report) e il contatore si azzera,
@@ -3873,7 +3993,7 @@ function generateMonthlyPDF(monthKey){
         var t=std[id]; if(!t||!t.clients) return;
         normalizeClients(t.clients).forEach(function(c){
           if(c.pr) return;
-          (c.bottles||[]).forEach(function(b){
+          expandBottles(c.bottles).forEach(function(b){
             if(!b.spirit||!b.brand) return;
             var q=parseInt(b.qty)||0; totalBot+=q;
             brandC[b.brand]=(brandC[b.brand]||0)+q;
@@ -3917,7 +4037,7 @@ function generateMonthlyPDF(monthKey){
         var t=std[id]; if(!t||!t.clients) return;
         normalizeClients(t.clients).forEach(function(c){
           if(c.pr) return;
-          (c.bottles||[]).forEach(function(b){ if(b.spirit&&b.brand){var q=parseInt(b.qty)||0;iBot+=q;iVal+=q*bottlePrice(b);} });
+          expandBottles(c.bottles).forEach(function(b){ if(b.spirit&&b.brand){var q=parseInt(b.qty)||0;iBot+=q;iVal+=q*bottlePrice(b);} });
         });
       });
       var d=tsToMilan(item.ts);
@@ -4314,6 +4434,233 @@ function correctDatesV8(){
   });
 }
 setTimeout(correctDatesV8, 1700);
+
+
+// ══════════════════════════════════════════════════════════
+// PULIZIA V9 — rimuove i turni doppi della stessa serata creati
+// dal vecchio sistema (backup automatico delle 04:00 + chiusura
+// reale = due chiavi diverse). Per ogni data tiene UN solo turno:
+// quello più completo (più bottiglie); a parità, il più recente.
+// ══════════════════════════════════════════════════════════
+function dedupeStoricoV9(){
+  if(!dbStorico){ setTimeout(dedupeStoricoV9, 900); return; }
+  var META = firebase.database().ref('meta/dedupeV9');
+  META.once('value', function(fs){
+    if(fs.val()===1) return;
+    dbStorico.once('value', function(snap){
+      var byDate={};
+      snap.forEach(function(ch){
+        var v=ch.val(); if(!v||!v.date) return;
+        var d=String(v.date).trim();
+        (byDate[d]=byDate[d]||[]).push({
+          key: ch.key,
+          bott: Number(v.bottiglie||0),
+          tav: Number(v.tavoli||0),
+          ts: Number(v.ts||0)
+        });
+      });
+      var removed=0;
+      Object.keys(byDate).forEach(function(d){
+        var list=byDate[d];
+        if(list.length<2) return;
+        // vincitore: più bottiglie; a parità, ts più recente
+        list.sort(function(a,b){
+          if(b.bott!==a.bott) return b.bott-a.bott;
+          return b.ts-a.ts;
+        });
+        for(var i=1;i<list.length;i++){
+          dbStorico.child(list[i].key).remove().catch(function(){});
+          removed++;
+        }
+      });
+      META.set(1);
+      if(removed>0){
+        setTimeout(function(){
+          if(typeof loadStorico==='function') loadStorico();
+          if(typeof showDragToast==='function') showDragToast('🧹 '+removed+' turni doppi rimossi', 3000);
+        }, 1600);
+      }
+    });
+  });
+}
+setTimeout(dedupeStoricoV9, 2100);
+
+
+// ══════════════════════════════════════════════════════════
+// UTENTI — ogni persona ha il suo PIN personale. Chi è loggato
+// firma le bottiglie che inserisce e la chiusura del turno.
+// ══════════════════════════════════════════════════════════
+var USERS_VERSION = 2; // alzare di 1 ogni volta che si modifica la lista qui sotto
+var USERS_DEFAULT = [
+  {name:'Luccas',  pin:'1001'},
+  {name:'Jhonny',  pin:'1002'},
+  {name:'Simone',  pin:'1003'},
+  {name:'Andrea',  pin:'1004'},
+  {name:'Tatiana', pin:'1005'},
+  {name:'Michele', pin:'1006'},
+  {name:'Matteo',  pin:'1007'},
+  {name:'Rebecca', pin:'1008'}
+];
+var USERS = USERS_DEFAULT.slice();
+var CURRENT_USER = '';
+try{ CURRENT_USER = localStorage.getItem('td21_user') || ''; }catch(e){}
+
+function loadUsers(){
+  try{
+    var ref  = firebase.database().ref('meta/users');
+    var vref = firebase.database().ref('meta/usersVersion');
+    // Se la lista salvata è di una versione precedente, la riscrive con quella
+    // aggiornata del codice (così i nomi nuovi arrivano su tutti i telefoni).
+    vref.once('value', function(vs){
+      if (Number(vs.val()||0) < USERS_VERSION){
+        ref.set(USERS_DEFAULT).catch(function(){});
+        vref.set(USERS_VERSION).catch(function(){});
+        USERS = USERS_DEFAULT.slice();
+      }
+    });
+    ref.on('value', function(snap){
+      var v = snap.val();
+      if (v && Array.isArray(v) && v.length){ USERS = v.filter(function(u){ return u && u.name; }); }
+      else if (v && typeof v === 'object'){
+        USERS = Object.keys(v).map(function(k){ return v[k]; }).filter(function(u){ return u && u.name; });
+        if(!USERS.length) USERS = USERS_DEFAULT.slice();
+      } else {
+        ref.set(USERS_DEFAULT).catch(function(){});
+        USERS = USERS_DEFAULT.slice();
+      }
+    });
+  }catch(e){}
+}
+
+function setCurrentUser(name){
+  CURRENT_USER = name || '';
+  try{ localStorage.setItem('td21_user', CURRENT_USER); }catch(e){}
+  var lbl = document.getElementById('currentUserLbl');
+  if (lbl) lbl.textContent = CURRENT_USER || '—';
+}
+
+// ── Schermata "Chi sei?" ──────────────────────────────────
+function showUserSelect(force){
+  if (!force && CURRENT_USER) return;
+  var ov = document.getElementById('userOv');
+  if (ov) ov.remove();
+  ov = document.createElement('div');
+  ov.id = 'userOv';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9998;background:#1a1510;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:max(28px,env(safe-area-inset-top,28px)) 20px 28px;gap:12px;overflow-y:auto;-webkit-overflow-scrolling:touch;';
+  var names = USERS.map(function(u){
+    return '<button class="usr-b" data-n="'+u.name+'" style="width:100%;max-width:300px;padding:13px;margin:4px 0;background:rgba(201,169,64,.12);border:2px solid #c9a940;border-radius:12px;color:#f0e6d2;font-size:16px;font-weight:800;cursor:pointer;">'+u.name+'</button>';
+  }).join('');
+  ov.innerHTML =
+    '<div style="font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:#c9a940;">Terrazza Duomo 21</div>'+
+    '<div id="usrStep1" style="width:100%;display:flex;flex-direction:column;align-items:center;">'+
+      '<div style="font-size:19px;font-weight:300;color:#f0e6d2;margin-bottom:10px;">Chi sei?</div>'+ names +
+    '</div>'+
+    '<div id="usrStep2" style="display:none;width:100%;max-width:300px;flex-direction:column;align-items:center;">'+
+      '<div style="font-size:17px;font-weight:700;color:#f0e6d2;" id="usrWho"></div>'+
+      '<div style="font-size:11px;color:#8c7d6a;margin:6px 0 12px;">Inserisci il tuo codice personale</div>'+
+      '<div id="usrDisp" style="font-size:26px;letter-spacing:8px;color:#c9a940;min-height:34px;">○ ○ ○ ○</div>'+
+      '<div id="usrErr" style="font-size:11px;color:#e57373;font-weight:700;min-height:16px;margin:4px 0;"></div>'+
+      '<div id="usrPad" style="display:grid;grid-template-columns:repeat(3,72px);gap:9px;justify-content:center;margin-top:6px;"></div>'+
+      '<button id="usrBack" style="margin-top:14px;background:none;border:none;color:#8c7d6a;font-size:12px;font-weight:700;cursor:pointer;">← Cambia nome</button>'+
+    '</div>';
+  document.body.appendChild(ov);
+
+  var pick = null, typed = '';
+  var s1 = ov.querySelector('#usrStep1'), s2 = ov.querySelector('#usrStep2');
+  var disp = ov.querySelector('#usrDisp'), err = ov.querySelector('#usrErr');
+
+  function draw(){
+    var s=''; for(var i=0;i<4;i++){ s += (i<typed.length?'●':'○'); if(i<3) s+=' '; }
+    disp.textContent = s;
+  }
+  var pad = ov.querySelector('#usrPad');
+  ['1','2','3','4','5','6','7','8','9','','0','del'].forEach(function(k){
+    var b = document.createElement('button');
+    b.textContent = (k==='del' ? '⌫' : k);
+    b.style.cssText = 'height:58px;border-radius:12px;border:none;font-size:21px;font-weight:700;cursor:pointer;'+
+      (k===''?'visibility:hidden;':'background:rgba(255,255,255,.08);color:#f0e6d2;');
+    if(k!==''){ b.onclick = function(){
+      if(k==='del'){ typed = typed.slice(0,-1); err.textContent=''; draw(); return; }
+      if(typed.length>=4) return;
+      typed += k; draw();
+      if(typed.length===4){
+        var u = USERS.filter(function(x){ return x.name===pick; })[0];
+        if(u && String(u.pin)===typed){
+          setCurrentUser(pick);
+          disp.style.color = '#81C784';
+          setTimeout(function(){ ov.remove(); }, 280);
+        } else {
+          err.textContent = 'Codice errato';
+          disp.style.color = '#e57373';
+          if(navigator.vibrate) navigator.vibrate(180);
+          setTimeout(function(){ typed=''; disp.style.color=''; err.textContent=''; draw(); }, 800);
+        }
+      }
+    }; }
+    pad.appendChild(b);
+  });
+
+  ov.querySelectorAll('.usr-b').forEach(function(b){
+    b.onclick = function(){
+      pick = b.getAttribute('data-n');
+      ov.querySelector('#usrWho').textContent = pick;
+      s1.style.display='none'; s2.style.display='flex';
+      typed=''; draw();
+    };
+  });
+  ov.querySelector('#usrBack').onclick = function(){
+    s1.style.display='flex'; s2.style.display='none'; typed=''; err.textContent='';
+  };
+  draw();
+}
+
+
+// ══════════════════════════════════════════════════════════
+// SELETTORE PIANO — il 5° Piano ha una pianta e una numerazione
+// diverse. Lo stato è CONDIVISO via Firebase: se un telefono
+// passa al 5° Piano, tutti i telefoni cambiano mappa.
+// ══════════════════════════════════════════════════════════
+var FLOOR5 = false;
+var dbFloor = null;
+
+function applyFloor5(on, fromRemote){
+  FLOOR5 = !!on;
+  var main = document.getElementById('mapMain');
+  var f5   = document.getElementById('mapFloor5');
+  var sw   = document.getElementById('floorSw');
+  var knob = document.getElementById('floorKnob');
+  if (main) main.style.display = FLOOR5 ? 'none' : '';
+  if (f5)   f5.style.display   = FLOOR5 ? '' : 'none';
+  if (sw)   sw.style.background = FLOOR5 ? '#2E7D32' : 'var(--border2)';
+  if (knob) knob.style.left = FLOOR5 ? '23px' : '3px';
+  try{ localStorage.setItem('td21_floor5', FLOOR5 ? '1' : '0'); }catch(e){}
+  if (typeof buildMap === 'function') buildMap();
+  if (!fromRemote && typeof showDragToast === 'function'){
+    showDragToast(FLOOR5 ? '🏢 5° Piano attivo' : '🏢 Piano principale', 1600);
+  }
+}
+
+function toggleFloor5(){
+  var next = !FLOOR5;
+  applyFloor5(next, false);
+  if (dbFloor) dbFloor.set(next ? 1 : 0).catch(function(){});
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  try{ if(localStorage.getItem('td21_floor5')==='1') applyFloor5(true, true); }catch(e){}
+});
+
+function initFloorSync(){
+  try{
+    dbFloor = firebase.database().ref('meta/floor5');
+    dbFloor.on('value', function(snap){
+      var v = snap.val();
+      if (v === null) return;              // mai impostato: resta com'è
+      var on = (Number(v) === 1);
+      if (on !== FLOOR5) applyFloor5(on, true);
+    });
+  }catch(e){}
+}
 
 window.addEventListener('DOMContentLoaded',function(){
   if(typeof updateSoundBtn==='function') updateSoundBtn();
