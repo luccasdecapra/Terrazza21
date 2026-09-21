@@ -1035,7 +1035,7 @@ var LABELS={Q1:'1 · 5°P', Q2:'2 · 5°P', Q3:'3 · 5°P', Q4:'4 · 5°P', Q5:'
 var ALL_IDS=['D1','D2','D3','D4','D5','10','9','8','7','6','5','4','2','10A','9A','8A','7A','6A','5A','4A','1','J','G7','G6','G5','G3G4','G1G2','L1S','L1D','L2S','L2D','E7','E8','E3','E4','51','52','53','54','55','56','T1','T3','T4','81','82','83',
   'Q1','Q2','Q3','Q4','Q5','Q6','Q7','Q8','Q9','Q10','Q11','Q12','Q13'];
 
-var APP_VERSION='21.09.26-8';
+var APP_VERSION='21.09.26-9';
 var TD={},CT=null,CC=0,CCB=null;
 
 var db = null;
@@ -4486,7 +4486,7 @@ setTimeout(dedupeStoricoV9, 2100);
 // UTENTI — ogni persona ha il suo PIN personale. Chi è loggato
 // firma le bottiglie che inserisce e la chiusura del turno.
 // ══════════════════════════════════════════════════════════
-var USERS_VERSION = 2; // alzare di 1 ogni volta che si modifica la lista qui sotto
+var USERS_VERSION = 3; // alzare di 1 ogni volta che si modifica la lista qui sotto
 var USERS_DEFAULT = [
   {name:'Luccas',  pin:'1001'},
   {name:'Jhonny',  pin:'1002'},
@@ -4495,7 +4495,8 @@ var USERS_DEFAULT = [
   {name:'Tatiana', pin:'1005'},
   {name:'Michele', pin:'1006'},
   {name:'Matteo',  pin:'1007'},
-  {name:'Rebecca', pin:'1008'}
+  {name:'Rebecca', pin:'1008'},
+  {name:'Mirko',   pin:'1009'}
 ];
 var USERS = USERS_DEFAULT.slice();
 var CURRENT_USER = '';
