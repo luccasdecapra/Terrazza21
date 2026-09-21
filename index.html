@@ -792,9 +792,6 @@ select:focus,input:focus{border-color:var(--gold2);}
       <div class="settings-close" onclick="closeSettings()">✕</div>
     </div>
     <div class="settings-body">
-      <div class="settings-lbl">Nome di questo telefono</div>
-      <input type="text" id="deviceNameInput" placeholder="Es: Bar, Sala Bottiglie, Cassa..." maxlength="24" style="width:100%;padding:13px 14px;background:var(--bg3);border:2px solid var(--border2);border-radius:10px;color:var(--dark);font-family:-apple-system,sans-serif;font-size:16px;font-weight:600;outline:none;box-sizing:border-box;">
-
       <div class="settings-toggle-row" id="salaToggleRow" onclick="toggleSalaMode()">
         <div style="flex:1;">
           <div class="settings-toggle-t">📥 Modalità Bottiglie</div>
@@ -1038,7 +1035,7 @@ var LABELS={Q1:'1 · 5°P', Q2:'2 · 5°P', Q3:'3 · 5°P', Q4:'4 · 5°P', Q5:'
 var ALL_IDS=['D1','D2','D3','D4','D5','10','9','8','7','6','5','4','2','10A','9A','8A','7A','6A','5A','4A','1','J','G7','G6','G5','G3G4','G1G2','L1S','L1D','L2S','L2D','E7','E8','E3','E4','51','52','53','54','55','56','T1','T3','T4','81','82','83',
   'Q1','Q2','Q3','Q4','Q5','Q6','Q7','Q8','Q9','Q10','Q11','Q12','Q13'];
 
-var APP_VERSION='21.09.26-7';
+var APP_VERSION='21.09.26-8';
 var TD={},CT=null,CC=0,CCB=null;
 
 var db = null;
@@ -3624,7 +3621,6 @@ function stopAlertSound(){
 // ── IMPOSTAZIONI DISPOSITIVO ──
 function openSettings(){
   var ov=document.getElementById('settingsOv');
-  document.getElementById('deviceNameInput').value=DEVICE_NAME;
   document.getElementById('deviceIdShow').textContent=DEVICE_ID;
   var _v=document.getElementById('appVersionLbl'); if(_v)_v.textContent=APP_VERSION;
   var _u=document.getElementById('currentUserLbl'); if(_u)_u.textContent=CURRENT_USER||'—';
@@ -3638,7 +3634,7 @@ function toggleSalaMode(){
   document.getElementById('salaToggleRow').classList.toggle('on', _salaModeTmp);
 }
 function saveSettings(){
-  DEVICE_NAME=(document.getElementById('deviceNameInput').value||'').trim();
+  DEVICE_NAME=(typeof CURRENT_USER!=='undefined'&&CURRENT_USER)?CURRENT_USER:DEVICE_NAME;
   SALA_MODE=_salaModeTmp;
   localStorage.setItem('td21_device_name', DEVICE_NAME);
   localStorage.setItem('td21_sala_mode', SALA_MODE?'on':'off');
@@ -4504,6 +4500,7 @@ var USERS_DEFAULT = [
 var USERS = USERS_DEFAULT.slice();
 var CURRENT_USER = '';
 try{ CURRENT_USER = localStorage.getItem('td21_user') || ''; }catch(e){}
+if (CURRENT_USER) DEVICE_NAME = CURRENT_USER;
 
 function loadUsers(){
   try{
@@ -4535,6 +4532,11 @@ function loadUsers(){
 function setCurrentUser(name){
   CURRENT_USER = name || '';
   try{ localStorage.setItem('td21_user', CURRENT_USER); }catch(e){}
+  // Il nome del telefono = chi è loggato (niente più campo da compilare)
+  if (CURRENT_USER){
+    DEVICE_NAME = CURRENT_USER;
+    try{ localStorage.setItem('td21_device_name', DEVICE_NAME); }catch(e){}
+  }
   var lbl = document.getElementById('currentUserLbl');
   if (lbl) lbl.textContent = CURRENT_USER || '—';
 }
